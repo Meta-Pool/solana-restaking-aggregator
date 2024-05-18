@@ -22,5 +22,9 @@ pub enum ErrorCode {
     MaxWhitelistedVaultsReached,
 
     #[msg("invalid adding vault state")]
-    InvalidAddingVaultState
+    InvalidAddingVaultState,
+
+    #[msg("Deposit exceeds vault cap")]
+    DepositExceedsVaultCap, 
+
 }

@@ -8,9 +8,10 @@ use crate::constants::*;
 #[derive(InitSpace)]
 pub struct MainVaultState {
     pub admin: Pubkey,
+    pub operator_auth: Pubkey, // authority to set parameters, token_deposit_caps & whitelisted_strategies, normally a DAO-authorized bot acting on votes
+    pub strategy_rebalancer_auth: Pubkey, // authority to move tokens in or out strategies, normally a DAO-authorized bot acting on votes
+
     pub mpsol_mint: Pubkey,
-    #[max_len(MAX_WHITELISTED_VAULT_PROGRAMS)]
-    pub whitelisted_vault_programs: Vec<VaultProgramEntry>,
     #[max_len(MAX_WHITELISTED_VAULTS)]
     pub whitelisted_vaults: Vec<VaultEntry>,
 
@@ -35,14 +36,7 @@ impl MainVaultState {
 #[account]
 #[derive(InitSpace)]
 pub struct VaultEntry {
-    pub vault_state_account: Pubkey,
+    pub token_mint: Pubkey, // vault-state address is PDA(token_mint, VAULT_STATE_SEED)
     pub last_sol_value: u64, // must be reduced manually when tickets are claimed and sol-value removed from a vault, so price-update computes rewards properly
     pub last_sol_value_timestamp: u64, // last run of price-update
-}
-
-/// secondary-vault-program entry in main-vault whitelist
-#[account]
-#[derive(InitSpace)]
-pub struct VaultProgramEntry {
-    pub program_address: Pubkey,
 }

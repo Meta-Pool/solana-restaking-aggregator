@@ -15,6 +15,7 @@
         "MVPpyLcH42bRtLXUWFnozcycqZ1WByvjDthCAgHh1fM",
         "prost",
         "Pubkey",
+        "rebalancer",
         "reqwest",
         "restaking",
         "solana",
