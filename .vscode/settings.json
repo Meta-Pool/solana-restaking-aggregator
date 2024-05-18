@@ -1,0 +1,35 @@
+{
+    "cSpell.words": [
+        "alloc",
+        "bincode",
+        "borsh",
+        "bytemuck",
+        "codegen",
+        "dalek",
+        "devnet",
+        "dialoguer",
+        "Keypair",
+        "LAMPORTS",
+        "localnet",
+        "mpsol",
+        "MVPpyLcH42bRtLXUWFnozcycqZ1WByvjDthCAgHh1fM",
+        "prost",
+        "Pubkey",
+        "reqwest",
+        "restaking",
+        "solana",
+        "sp1V4h2gWorkGhVcazBc22Hfo2f5sd7jcjT4EDPrWFF",
+        "strat",
+        "SVPwV3gvWhUHi3pyKNEXxWixUXigzpqpzVYo32MXatZ",
+        "Tato",
+        "unstake",
+        "unstaking",
+        "wsoGmxQLSvwWpuaidCApxN5kEowLe2HLQLJhCQnj4bE",
+        "WSOL"
+    ],
+    "cSpell.ignorePaths": [
+        "*.toml",
+        "package.json",
+        "tasks.json"
+    ],
+}

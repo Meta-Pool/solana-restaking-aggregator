@@ -1,0 +1,48 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"command": "anchor",
+			"args": [
+				"build"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "Anchor build"
+		},
+		{
+			"type": "shell",
+			"command": "anchor",
+			"args": [
+				"build",
+				"-v"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "Anchor build VERIFIABLE"
+		},
+		{
+			"type": "process",
+			"command": "anchor",
+			"args": ["test"],
+			"group": "test",
+			"problemMatcher": [],
+			"label": "anchor test",
+			"detail": "anchor test"
+		},
+		{
+			"type": "process",
+			"command": "anchor",
+			"args": ["test","--skip-build"],
+			"group": "test",
+			"problemMatcher": [],
+			"label": "anchor test --skip-build",
+			"detail": "anchor test --skip-build"
+		}
+	]
+}
