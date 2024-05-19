@@ -1,7 +1,12 @@
+use crate::marinade_pool_interface::{
+    MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS,
+};
+use crate::state::spl_stake_pool_interface::{
+    AccountType, SplStakePoolState, SPL_STAKE_POOL_PROGRAM,
+};
 use crate::state::MainVaultState;
 use crate::util::{mul_div, ONE_BILLION};
-use crate::AccountType;
-use crate::{constants::*, error::ErrorCode, SecondaryVaultState, SplStakePoolState};
+use crate::{constants::*, error::ErrorCode, SecondaryVaultState};
 use anchor_lang::prelude::*;
 
 use ::borsh::BorshDeserialize;
@@ -47,42 +52,74 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 }
 
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
-pub const SPL_STAKE_POOL_PROGRAM: Pubkey = pubkey!("SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy");
 
 pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
-    ctx.accounts.secondary_state.token_sol_price = 
-    if ctx.accounts.token_mint.key() == WSOL_MINT {
-        ONE_BILLION
-    } else {
-        // assume the corresponding SPL-stake-pool state account sent in remaining_accounts
-        require_eq!(ctx.remaining_accounts.len(), 1);
-        // msg!(lst_state.key.to_string().as_str());
-        let lst_state = &ctx.remaining_accounts[0];
-        // verify owner program & data_len
-        require_keys_eq!(*lst_state.owner, SPL_STAKE_POOL_PROGRAM, ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram);
-        require_eq!(lst_state.data_len(), 611);
-        // try deserialize
-        let mut data_slice = &lst_state.data.borrow()[..];
-        let spl_stake_pool_state: SplStakePoolState =
-            SplStakePoolState::deserialize(&mut data_slice)?;
-        // debug log show data
-        // msg!("stake_pool={:?}", spl_stake_pool_state);
-        // verify mint
-        require_keys_eq!(
-            spl_stake_pool_state.pool_mint,
-            ctx.accounts.token_mint.key()
-        );
-        // verify type
-        require!(
-            spl_stake_pool_state.account_type == AccountType::StakePool,
-            ErrorCode::AccountTypeIsNotStakePool
-        );
-        // compute true price = total_lamports / pool_token_supply
-        mul_div(
-            spl_stake_pool_state.total_lamports,
-            ONE_BILLION,
-            spl_stake_pool_state.pool_token_supply,
-        )
+    ctx.accounts.secondary_state.token_sol_price_timestamp = Clock::get().unwrap().unix_timestamp as u64;
+    ctx.accounts.secondary_state.token_sol_price = match ctx.accounts.token_mint.key() {
+        // wSol is simple, always 1
+        WSOL_MINT => ONE_BILLION,
+        // mSol, read marinade state
+        MARINADE_MSOL_MINT => {
+            // assume the corresponding marinade state account sent in remaining_accounts
+            require_eq!(ctx.remaining_accounts.len(), 1);
+            let lst_state = &ctx.remaining_accounts[0];
+            // msg!(lst_state.key.to_string().as_str());
+            // marinade state address is known, verify
+            require_keys_eq!(
+                *lst_state.key,
+                MARINADE_STATE_ADDRESS,
+                ErrorCode::IncorrectMarinadeStateAddress
+            );
+            // try deserialize
+            let mut data_slice = &lst_state.data.borrow()[..];
+            let marinade_state: MarinadeState = MarinadeState::deserialize(&mut data_slice)?;
+            // compute true price = total_lamports / pool_token_supply
+            // https://docs.marinade.finance/marinade-protocol/system-overview/msol-token#msol-price
+            // convert marinade price denom 0x1_0000_0000 to our ONE_BILLION
+            mul_div(
+                marinade_state.msol_price,
+                ONE_BILLION,
+                0x1_0000_0000,
+            )
+        }
+        // TODO: Inf/Sanctum
+        ,
+        _ => {
+            // none of the above, try a generic SPL-stake-pool
+            // assume the corresponding SPL-stake-pool state account sent in remaining_accounts[0]
+            require_eq!(ctx.remaining_accounts.len(), 1);
+            // msg!(lst_state.key.to_string().as_str());
+            let lst_state = &ctx.remaining_accounts[0];
+            // verify owner program & data_len
+            require_keys_eq!(
+                *lst_state.owner,
+                SPL_STAKE_POOL_PROGRAM,
+                ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
+            );
+            require_eq!(lst_state.data_len(), 611);
+            // try deserialize
+            let mut data_slice = &lst_state.data.borrow()[..];
+            let spl_stake_pool_state: SplStakePoolState =
+                SplStakePoolState::deserialize(&mut data_slice)?;
+            // debug log show data
+            // msg!("stake_pool={:?}", spl_stake_pool_state);
+            // verify mint
+            require_keys_eq!(
+                spl_stake_pool_state.pool_mint,
+                ctx.accounts.token_mint.key()
+            );
+            // verify type
+            require!(
+                spl_stake_pool_state.account_type == AccountType::StakePool,
+                ErrorCode::AccountTypeIsNotStakePool
+            );
+            // compute true price = total_lamports / pool_token_supply
+            mul_div(
+                spl_stake_pool_state.total_lamports,
+                ONE_BILLION,
+                spl_stake_pool_state.pool_token_supply,
+            )
+        }
     };
     Ok(())
 }

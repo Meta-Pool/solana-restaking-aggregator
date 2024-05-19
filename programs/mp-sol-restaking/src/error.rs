@@ -31,5 +31,8 @@ pub enum ErrorCode {
     AccountTypeIsNotStakePool,
 
     #[msg("Spl Stake Pool State account owner is not the Spl-Stake-Pool Program")]
-    SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
+    SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram,
+
+    #[msg("Incorrect Marinade State Address")]
+    IncorrectMarinadeStateAddress,
 }

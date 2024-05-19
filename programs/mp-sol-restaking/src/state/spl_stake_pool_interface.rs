@@ -1,5 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
+
+pub const SPL_STAKE_POOL_PROGRAM: Pubkey = pubkey!("SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy");
 
 #[derive(Clone, Debug, BorshDeserialize, BorshSerialize, PartialEq)]
 pub enum AccountType {
