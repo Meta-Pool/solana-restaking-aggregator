@@ -31,6 +31,8 @@
     "cSpell.ignorePaths": [
         "*.toml",
         "package.json",
-        "tasks.json"
+        "tasks.json",
+        "yarn.lock"
+
     ],
 }

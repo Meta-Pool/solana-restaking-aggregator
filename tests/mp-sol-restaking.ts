@@ -6,13 +6,19 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, getAssociatedTokenAddressSync
 
 import { expect } from 'chai';
 
+const ONE_BILLION: string = 1e9.toFixed()
+
 const WSOL_TOKEN_MINT = NATIVE_MINT
 
 const SANCTUM_WSOL_VALUE_CALCULATOR_PROGRAM = "wsoGmxQLSvwWpuaidCApxN5kEowLe2HLQLJhCQnj4bE"
 const SANCTUM_SPL_SOL_VALUE_CALCULATOR_PROGRAM = "sp1V4h2gWorkGhVcazBc22Hfo2f5sd7jcjT4EDPrWFF"
 
 function idlConstant(idl: anchor.Idl, name: string) {
-  return JSON.parse(idl.constants.find(c => c.name == name).value)
+  try {
+    return JSON.parse(idl.constants.find(c => c.name == name).value)
+  } catch (ex) {
+    throw new Error(`idlConstant("${name}"): ${ex}`)
+  }
 }
 
 
@@ -87,41 +93,56 @@ describe("mp-sol-restaking", () => {
         program.programId
       )
 
-    const [vaultManagerAuth, vaultManagerAuthBump] =
+    const [vaultsTokenAtaPdaAuth, vaultsTokenAtaPdaBump] =
       PublicKey.findProgramAddressSync(
         [
           mainStateKeyPair.publicKey.toBuffer(),
-          idlConstant(program.idl, "vaultsManagerAuthSeed")
+          idlConstant(program.idl, "vaultsAtaAuthSeed")
         ],
         program.programId
       )
 
     const vaultTokenAccountAddress =
-      getAssociatedTokenAddressSync(wSol_token_mint, vaultManagerAuth, true);
+      getAssociatedTokenAddressSync(wSol_token_mint, vaultsTokenAtaPdaAuth, true);
 
     const tx2 = await program.methods.createSecondaryVault()
       .accounts({
         admin: wallet.publicKey,
         mainState: mainStateKeyPair.publicKey,
         tokenMint: wSol_token_mint,
-        //vaultsManagerPdaAuthority: vaultManagerAuth,
         secondaryState: wSolSecondaryStateAddress,
         vaultTokenAccount: vaultTokenAccountAddress
       })
       .rpc();
 
+    {
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress);
-
       expect(secondaryVaultState.depositsDisabled).to.eql(true);
       expect(secondaryVaultState.inStrategiesAmount.toString()).to.eql("0");
       expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql("0");
       expect(secondaryVaultState.tokenMint).to.eql(wSol_token_mint);
+      expect(secondaryVaultState.tokenSolPrice.toString()).to.eql("0");
       expect(secondaryVaultState.solValue.toString()).to.eql("0");
       expect(secondaryVaultState.ticketsTargetSolAmount.toString()).to.eql("0");
       expect(secondaryVaultState.vaultTokenAccount).to.eql(vaultTokenAccountAddress);
       expect(secondaryVaultState.vaultTokenAmount.toString()).to.eql("0");
       expect(secondaryVaultState.whitelistedStrategies.length.toString()).to.eql("0");
-  
+    }
+
+    console.log("update vault token sol price")
+    const tx3 = await program.methods.updateVaultTokenSolPrice()
+      .accounts({
+        admin: wallet.publicKey,
+        secondaryState: wSolSecondaryStateAddress,
+        mainState: mainStateKeyPair.publicKey,
+      })
+      .rpc();
+
+    {
+      const secondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress);
+      expect(secondaryVaultState.tokenSolPrice.toString()).to.eql(ONE_BILLION);
+    }
+
   });
 
 

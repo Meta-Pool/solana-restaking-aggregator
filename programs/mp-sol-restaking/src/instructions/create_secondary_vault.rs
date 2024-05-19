@@ -22,11 +22,11 @@ pub struct CreateSecondaryVault<'info> {
     #[account(
         seeds = [
             &main_state.key().to_bytes(),
-            VAULTS_MANAGER_AUTH_SEED
+            VAULTS_ATA_AUTH_SEED
         ],
         bump
     )]
-    pub vaults_manager_pda_authority: UncheckedAccount<'info>,
+    pub vaults_token_ata_pda_auth: UncheckedAccount<'info>,
 
     #[account(init, payer = admin, space = 8 + SecondaryVaultState::INIT_SPACE,
         seeds = [
@@ -37,7 +37,7 @@ pub struct CreateSecondaryVault<'info> {
     )]
     pub secondary_state: Account<'info, SecondaryVaultState>,
 
-    #[account(init, payer = admin, associated_token::mint = token_mint, associated_token::authority = vaults_manager_pda_authority)]
+    #[account(init, payer = admin, associated_token::mint = token_mint, associated_token::authority = vaults_token_ata_pda_auth)]
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,

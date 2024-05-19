@@ -23,4 +23,8 @@ pub mod mp_sol_restaking {
     pub fn create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Result<()> {
         create_secondary_vault::handle_create_secondary_vault(ctx)
     }
+
+    pub fn update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
+        update_vault_token_sol_price::handle_update_vault_token_sol_price(ctx)
+    }
 }
