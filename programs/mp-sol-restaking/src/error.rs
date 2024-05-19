@@ -27,4 +27,9 @@ pub enum ErrorCode {
     #[msg("Deposit exceeds vault cap")]
     DepositExceedsVaultCap, 
 
+    #[msg("Spl Stake Pool State field AccountType != AccountTypeStakePool")]
+    AccountTypeIsNotStakePool,
+
+    #[msg("Spl Stake Pool State account owner is not the Spl-Stake-Pool Program")]
+    SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
 }

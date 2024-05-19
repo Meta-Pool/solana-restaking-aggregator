@@ -17,6 +17,7 @@
     "@types/mocha": "^9.0.0",
     "typescript": "^5.4.0",
     "prettier": "^2.6.2",
-    "@solana/spl-token":"^0.4.6"
+    "@solana/spl-token":"^0.4.6",
+    "@solana/spl-stake-pool":"^1.1.3"
   }
 }
