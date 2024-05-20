@@ -9,14 +9,17 @@ pub enum ErrorCode {
     #[msg("token_sol_price is stale")]
     TokenSolPriceIsStale, // 6001 0x1771
 
+    #[msg("Deposit amount too small")]
+    DepositAmountToSmall, 
+
     #[msg("Withdraw amount too small")]
-    WithdrawAmountTooSmall, // 6002 0x1772
+    WithdrawAmountTooSmall, 
 
     #[msg("not enough tokens in the vault")]
-    NotEnoughTokensInTheVault, // 6003 0x1773
+    NotEnoughTokensInTheVault, 
 
     #[msg("vault at index is not the vault sent in the instruction")]
-    VaultIndexHasDifferentVault, // 6004 0x1774
+    VaultIndexHasDifferentVault, 
 
     #[msg("max whitelisted vaults reached")]
     MaxWhitelistedVaultsReached,
@@ -27,12 +30,15 @@ pub enum ErrorCode {
     #[msg("Deposit exceeds vault cap")]
     DepositExceedsVaultCap, 
 
+    #[msg("Incorrect Marinade State Address")]
+    IncorrectMarinadeStateAddress,
+
     #[msg("Spl Stake Pool State field AccountType != AccountTypeStakePool")]
     AccountTypeIsNotStakePool,
 
     #[msg("Spl Stake Pool State account owner is not the Spl-Stake-Pool Program")]
     SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram,
 
-    #[msg("Incorrect Marinade State Address")]
-    IncorrectMarinadeStateAddress,
+    #[msg("Deposits in this vault are disabled")]
+    DepositsInThisVaultAreDisabled,
 }

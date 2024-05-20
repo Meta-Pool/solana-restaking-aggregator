@@ -16,7 +16,14 @@ declare_id!("MVPpyLcH42bRtLXUWFnozcycqZ1WByvjDthCAgHh1fM");
 pub mod mp_sol_restaking {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, operator_auth:Pubkey, strategy_rebalancer_auth:Pubkey) -> Result<()> {
+    // ------------------
+    // admin
+    // ------------------
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        operator_auth: Pubkey,
+        strategy_rebalancer_auth: Pubkey,
+    ) -> Result<()> {
         initialize::handle_initialize(ctx, operator_auth, strategy_rebalancer_auth)
     }
 
@@ -26,5 +33,19 @@ pub mod mp_sol_restaking {
 
     pub fn update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
         update_vault_token_sol_price::handle_update_vault_token_sol_price(ctx)
+    }
+
+    pub fn configure_secondary_vault(
+        ctx: Context<ConfigureSecondaryVault>,
+        values: ConfigureSecondaryVaultValues,
+    ) -> Result<()> {
+        configure_secondary_vault::handle_configure_secondary_vault(ctx, values)
+    }
+
+    // ------------------
+    // users
+    // ------------------
+    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
+        users::stake::handle_stake(ctx, amount)
     }
 }

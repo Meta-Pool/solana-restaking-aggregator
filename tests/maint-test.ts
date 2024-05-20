@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { MpSolRestaking } from "../target/types/mp_sol_restaking";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import * as splStakePool from "@solana/spl-stake-pool";
 // @ts-ignore: marinade-sdk has @coral-xyz/anchor and an older version of @solana/spl-token -- vscode intellisense gets confused
 import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
@@ -9,7 +9,9 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, getAssociatedTokenAddressSync
 import { Marinade, MarinadeConfig } from '@marinade.finance/marinade-ts-sdk'
 
 import { expect } from 'chai';
-import { test } from "mocha";
+import { BN } from "bn.js";
+import { createAta, mintTokens } from "./util/mint";
+import { computeMsolAmount } from "@marinade.finance/marinade-ts-sdk/dist/src/util";
 
 const ONE_BILLION: string = 1e9.toFixed()
 
@@ -34,6 +36,8 @@ const mpsolTokenMintKeyPair = Keypair.generate()
 
 const operatorAuthKeyPair = Keypair.generate()
 const strategyRebalancerAuthKeyPair = Keypair.generate()
+
+const depositorUserKeyPair = Keypair.generate()
 
 function idlConstant(idl: anchor.Idl, name: string) {
   try {
@@ -173,7 +177,7 @@ describe("mp-sol-restaking", () => {
       const method = testGetUpdateVaultPriceMethod("wSOL", WSOL_TOKEN_MINT, wSolSecondaryStateAddress);
       await method.rpc();
       let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
-      expect(wSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime()/1000-2);
+      expect(wSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(wSolSecondaryVaultState.tokenSolPrice.toString()).to.eql(ONE_BILLION);
     }
 
@@ -185,6 +189,7 @@ describe("mp-sol-restaking", () => {
       );
 
     // test mSOL secondary vault update price
+    let walletMsolAccount;
     {
       let marinadeStatePubKey = new PublicKey(MARINADE_STATE_ADDRESS)
       // first get mSOL price by using @@marinade.finance/marinade-ts-sdk
@@ -195,7 +200,7 @@ describe("mp-sol-restaking", () => {
       const marinade = new Marinade(config)
       let poolInfoViaSdk = await marinade.getMarinadeState()
       splStakePool.stakePoolInfo(provider.connection, marinadeStatePubKey)
-      console.log("mSOL price from sdk:",poolInfoViaSdk.mSolPrice)
+      console.log("mSOL price from sdk:", poolInfoViaSdk.mSolPrice)
       const sdkComputedPrice = BigInt((poolInfoViaSdk.mSolPrice * Number(ONE_BILLION)).toFixed())
 
       // 2nd call UpdateVaultPriceMethod for marinadeSecondaryVaultStateAddress
@@ -214,8 +219,90 @@ describe("mp-sol-restaking", () => {
 
       // compare price results
       console.log(formatPrice(marinadeSecondaryVaultState.tokenSolPrice.toString()))
-      expect(marinadeSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime()/1000-2);
+      expect(marinadeSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(marinadeSecondaryVaultState.tokenSolPrice.toString()).to.eql(sdkComputedPrice.toString());
+
+      // ------------------------------
+      // stake SOL and get some mSOL --- NOPE: we need to clone all marinade state accounts for this to work
+      // ------------------------------
+      // let depositResult = await marinade.deposit(new BN(1e15.toFixed()));
+      // walletMsolAccount = depositResult.associatedMSolTokenAccountAddress;
+      // let stakeMsolTx = new Transaction( await provider.connection.getLatestBlockhash());
+      // stakeMsolTx.feePayer = wallet.publicKey
+      // stakeMsolTx.add(depositResult.transaction)
+      // stakeMsolTx = await wallet.signTransaction(stakeMsolTx)
+      // await provider.sendAndConfirm(stakeMsolTx);
+
+      // ------------------------------
+      // mint some mSOL with the hijacked mint
+      // ------------------------------
+      console.log("mint mSOL to test stake")
+      let depositorAta = await mintTokens(provider, wallet, new PublicKey(MARINADE_MSOL_MINT), depositorUserKeyPair.publicKey, 1e15)
+
+      let depositorMpSolAta = await createAta(provider, wallet, mpsolTokenMintKeyPair.publicKey, depositorUserKeyPair.publicKey)
+
+      // crate ix tp deposit the mSOL in the vault
+      let amountMsolDeposited = new BN(1e12.toFixed())
+      let amountString = amountMsolDeposited.toString()
+      let stakeTx = await program.methods
+        .stake(new BN(amountString))
+        .accounts({
+          mainState: mainStateKeyPair.publicKey,
+          tokenMint: new PublicKey(MARINADE_MSOL_MINT),
+          vaultState: marinadeSecondaryVaultStateAddress,
+          depositor: depositorUserKeyPair.publicKey,
+          depositorTokenAccount: depositorAta,
+          mpsolMint: mpsolTokenMintKeyPair.publicKey,
+          depositorMpsolAccount: depositorMpSolAta,
+        })
+      //console.log(stakeTx)
+
+      try {
+        console.log("stakeTx.simulate()")
+        await stakeTx.simulate()
+        expect(false,"stakeTx.rpc() should throw");
+      }
+      catch(ex) {
+        //console.log("simulate throw ex:", )
+        expect(JSON.stringify(ex)).to.contain("DepositsInThisVaultAreDisabled")
+      }
+
+      {
+      console.log("config, enable deposits")
+      let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false })
+        .accounts({
+          admin: wallet.publicKey,
+          mainState: mainStateKeyPair.publicKey,
+          tokenMint: new PublicKey(MARINADE_MSOL_MINT),
+        })
+        .rpc()
+      }
+
+      {
+        console.log("stakeTx.simulate() -- no signers")
+        try {
+          let result = await stakeTx.simulate()
+          console.log(result)
+        }
+        catch (ex) {
+          console.log(ex)
+        }
+      }
+
+      {
+        console.log("stakeTx.signers().rpc()")
+        let result = await stakeTx
+          .signers([depositorUserKeyPair])
+          .rpc()
+      }
+
+      // console.log("retry stake")
+      // await stakeTx.rpc()
+      const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
+      expect(secondaryVaultState.depositsDisabled).to.eql(false);
+      expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql(amountString);
+      const solValueComputed = amountMsolDeposited.mul(marinadeSecondaryVaultState.tokenSolPrice).div(new BN(ONE_BILLION));
+      expect(secondaryVaultState.solValue.toString()).to.eql(solValueComputed.toString());
     }
 
     // ------------------------------
@@ -249,9 +336,10 @@ describe("mp-sol-restaking", () => {
 
       // compare price results
       console.log(formatPrice(jitoSolSecondaryVaultState.tokenSolPrice.toString()))
-      expect(jitoSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime()/1000-2);
+      expect(jitoSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(jitoSolSecondaryVaultState.tokenSolPrice.toString()).to.eql(sdkComputedPrice.toString());
     }
+
 
   });
 

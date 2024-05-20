@@ -12,7 +12,7 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.ts"
 
 [programs.localnet]
 mp_sol_restaking = "MVPpyLcH42bRtLXUWFnozcycqZ1WByvjDthCAgHh1fM"
@@ -21,11 +21,16 @@ mp_sol_restaking = "MVPpyLcH42bRtLXUWFnozcycqZ1WByvjDthCAgHh1fM"
 url = "https://api.mainnet-beta.solana.com"     # This is the url of the cluster that accounts are cloned from (See `test.validator.clone`).
 ledger = "test-ledger"                          # Set ledger location.
 
+# [[test.genesis]]
+# address = "4PQH9YmfuKrVyZaibkLYpJZPv2FPaybhq2GAuBcWMSBf" # Marinade program data
+# program = "test-genesis/generated-data/marinade.so"
+
+# [[test.validator.clone]]
+# address = "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So" # mSOL token Mint
 
 [[test.validator.clone]]
-address = "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So" # mSOL token Mint
-[[test.validator.clone]]
-address = "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD" # Marinade program
+address = "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD" # Marinade program (proxy)
+
 [[test.validator.clone]]
 address = "8szGkuLTAux9XMgZ2vtY39jVSowEcpBfFfD8hXSEqdGC" # Marinade state
 
@@ -34,7 +39,18 @@ address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s" # NFT metadata implicitl
 
 [[test.validator.clone]]
 address = "Jito4APyf642JPZPx3hGc6WWJ8zPKtRbRs4P815Awbb" # jito-SOL SPL-Stake-Pool State
-[[test.validator.clone]]
-address = "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn" # jito-SOL SPL-Stake-Pool Mint
+
+#[[test.validator.clone]]
+#address = "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn" # jito-SOL SPL-Stake-Pool Mint
+
 [[test.validator.clone]]
 address = "3R3nGZpQs2aZo5FDQvd2MUQ6R7KhAPainds6uT6uE2mn" # jito-SOL SPL-Stake-Pool validator_list state account
+
+[[test.validator.account]]
+address = "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So" # mSOL token Mint
+filename = "test-genesis/generated-data/mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So.json"
+
+[[test.validator.account]]
+address = "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn" # jito-SOL SPL-Stake-Pool Mint, with mint auth changed
+filename = "test-genesis/generated-data/J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn.json"
+

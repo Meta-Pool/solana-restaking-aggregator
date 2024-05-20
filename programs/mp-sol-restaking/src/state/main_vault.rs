@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 
-use crate::util::{mul_div, ONE_BILLION};
 use crate::constants::*;
+use crate::util::{mul_div, ONE_BILLION};
 
 #[account]
 #[derive(InitSpace)]
@@ -11,7 +11,10 @@ pub struct MainVaultState {
     pub operator_auth: Pubkey, // authority to set parameters, token_deposit_caps & whitelisted_strategies, normally a DAO-authorized bot acting on votes
     pub strategy_rebalancer_auth: Pubkey, // authority to move tokens in or out strategies, normally a DAO-authorized bot acting on votes
 
+    pub deposit_fee_bp: u16, // normally 0.1%
+
     pub mpsol_mint: Pubkey,
+
     #[max_len(MAX_WHITELISTED_VAULTS)]
     pub whitelisted_vaults: Vec<VaultEntry>,
 
@@ -29,7 +32,11 @@ pub struct MainVaultState {
 
 impl MainVaultState {
     pub fn mpsol_price(&self, mpsol_supply: u64) -> u64 {
-        mul_div(self.backing_sol_value, ONE_BILLION, mpsol_supply)
+        if self.backing_sol_value == 0 {
+            ONE_BILLION
+        } else {
+            mul_div(self.backing_sol_value, ONE_BILLION, mpsol_supply)
+        }
     }
 }
 /// secondary-vault entry in main-vault whitelist
