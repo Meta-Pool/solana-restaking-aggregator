@@ -10,12 +10,12 @@ import { Marinade, MarinadeConfig } from '@marinade.finance/marinade-ts-sdk'
 
 import { expect } from 'chai';
 import { BN } from "bn.js";
-import { createAta, mintTokens } from "./util/mint";
+import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens } from "./util/spl-token-mint-helpers";
 import { computeMsolAmount } from "@marinade.finance/marinade-ts-sdk/dist/src/util";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
 const ONE_E9: string = 1e9.toFixed()
-const TWO_POW_32: string = (2**32).toFixed()
+const TWO_POW_32: string = (2 ** 32).toFixed()
 
 const WSOL_TOKEN_MINT = NATIVE_MINT.toBase58()
 
@@ -248,9 +248,8 @@ describe("mp-sol-restaking", () => {
 
       // crate ix tp deposit the mSOL in the vault
       let amountMsolDeposited = new BN(1e12.toFixed())
-      let amountString = amountMsolDeposited.toString()
       let stakeTx = await program.methods
-        .stake(new BN(amountString))
+        .stake(amountMsolDeposited)
         .accounts({
           mainState: mainStateKeyPair.publicKey,
           tokenMint: new PublicKey(MARINADE_MSOL_MINT),
@@ -262,25 +261,32 @@ describe("mp-sol-restaking", () => {
         })
       //console.log(stakeTx)
 
+      // remember main state
+      const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+      const preMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+
+      // -------------------
+      // start staking tries
+      // -------------------
       try {
         console.log("stakeTx.simulate()")
         await stakeTx.simulate()
-        expect(false,"stakeTx.rpc() should throw");
+        expect(false, "stakeTx.rpc() should throw");
       }
-      catch(ex) {
+      catch (ex) {
         //console.log("simulate throw ex:", )
         expect(JSON.stringify(ex)).to.contain("DepositsInThisVaultAreDisabled")
       }
 
       {
-      console.log("config, enable deposits")
-      let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false })
-        .accounts({
-          admin: wallet.publicKey,
-          mainState: mainStateKeyPair.publicKey,
-          tokenMint: new PublicKey(MARINADE_MSOL_MINT),
-        })
-        .rpc()
+        console.log("config, enable deposits")
+        let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false })
+          .accounts({
+            admin: wallet.publicKey,
+            mainState: mainStateKeyPair.publicKey,
+            tokenMint: new PublicKey(MARINADE_MSOL_MINT),
+          })
+          .rpc()
       }
 
       {
@@ -301,13 +307,29 @@ describe("mp-sol-restaking", () => {
           .rpc()
       }
 
-      // console.log("retry stake")
-      // await stakeTx.rpc()
+      // check received mpSOL amount
+      const solValueDeposited = amountMsolDeposited.mul(mSolSecondaryVaultState.lstSolPriceP32).div(new BN(TWO_POW_32));
+      const correspondingMpSolAmount = preMpSolMintSupply.isZero() ? solValueDeposited :
+        solValueDeposited.mul(preMpSolMintSupply).div(mainStatePre.backingSolValue);
+      // a deposit fee applies
+      const depositFeeMpSolAmount = correspondingMpSolAmount.mul(new BN(mainStatePre.depositFeeBp)).div(new BN("10000"));
+      let mpSolReceived = new BN(await getTokenAccountBalance(provider, depositorMpSolAta));
+      expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.sub(depositFeeMpSolAmount).toString());
+
+      // check secondary vault state after stake
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
       expect(secondaryVaultState.depositsDisabled).to.eql(false);
-      expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql(amountString);
-      const vaultSolValueComputed = amountMsolDeposited.mul(mSolSecondaryVaultState.lstSolPriceP32).div(new BN(TWO_POW_32));
-      expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql(vaultSolValueComputed.toString());
+      expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql(amountMsolDeposited.toString());
+      expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql(solValueDeposited.toString());
+
+      // check main state after
+      const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+      expect(mainStatePre.backingSolValue.add(solValueDeposited).toString()).to.eql(mainStateAfter.backingSolValue.toString());
+
+      // check mpSOL mint after
+      const postMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+      expect(preMpSolMintSupply.add(mpSolReceived).toString()).to.eql(postMpSolMintSupply.toString());
+
     }
 
     // ------------------------------

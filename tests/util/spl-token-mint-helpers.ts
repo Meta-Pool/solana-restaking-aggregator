@@ -13,18 +13,19 @@ import {
     ASSOCIATED_TOKEN_PROGRAM_ID,
     MINT_SIZE,
     TOKEN_PROGRAM_ID,
+    Token,
     createMintToInstruction,
     getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import { Wallet } from "@coral-xyz/anchor";
+import { BN, Wallet } from "@coral-xyz/anchor";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 import { Provider } from "@marinade.finance/marinade-ts-sdk";
 import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
 
 // Function to mint tokens
-export async function createAta(provider: Provider, wallet: any, mint: PublicKey, recipient: PublicKey) 
-: Promise<PublicKey> {
+export async function createAta(provider: Provider, wallet: any, mint: PublicKey, recipient: PublicKey)
+    : Promise<PublicKey> {
 
     const connection: Connection = provider.connection
 
@@ -32,7 +33,7 @@ export async function createAta(provider: Provider, wallet: any, mint: PublicKey
 
     // 1. Get the associated token account address for the recipient
     const associatedTokenAddress = await getAssociatedTokenAddressSync(mint, recipient);
-    console.log("associatedTokenAddress",associatedTokenAddress.toBase58())
+    console.log("associatedTokenAddress", associatedTokenAddress.toBase58())
 
     instructions.push(createAssociatedTokenAccountInstruction(
         wallet.payer.publicKey,
@@ -67,8 +68,8 @@ export async function createAta(provider: Provider, wallet: any, mint: PublicKey
 }
 
 // Function to mint tokens
-export async function mintTokens(provider: Provider, wallet: any, mint: PublicKey, recipient: PublicKey, amount: number) 
-: Promise<PublicKey> {
+export async function mintTokens(provider: Provider, wallet: any, mint: PublicKey, recipient: PublicKey, amount: number)
+    : Promise<PublicKey> {
 
     const connection: Connection = provider.connection
 
@@ -114,4 +115,16 @@ export async function mintTokens(provider: Provider, wallet: any, mint: PublicKe
     console.log(`Minted ${amount} tokens to ${recipient}`);
 
     return associatedTokenAddress
+}
+
+export async function getTokenAccountBalance(provider: Provider, tokenAccount: PublicKey): Promise<string> {
+    let result = await provider.connection.getTokenAccountBalance(tokenAccount)
+    console.log(result.value)
+    return result.value.amount
+}
+
+export async function getTokenMintSupply(provider: Provider, mintAccount: PublicKey): Promise<string> {
+    let result = await provider.connection.getTokenSupply(mintAccount)
+    console.log(result.value)
+    return result.value.amount
 }
