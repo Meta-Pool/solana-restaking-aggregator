@@ -12,8 +12,10 @@ import { expect } from 'chai';
 import { BN } from "bn.js";
 import { createAta, mintTokens } from "./util/mint";
 import { computeMsolAmount } from "@marinade.finance/marinade-ts-sdk/dist/src/util";
+import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
-const ONE_BILLION: string = 1e9.toFixed()
+const ONE_E9: string = 1e9.toFixed()
+const TWO_POW_32: string = (2**32).toFixed()
 
 const WSOL_TOKEN_MINT = NATIVE_MINT.toBase58()
 
@@ -47,8 +49,10 @@ function idlConstant(idl: anchor.Idl, name: string) {
   }
 }
 
-function formatPrice(priceString: string) {
-  return `${priceString.slice(0, -9)}.${priceString.slice(-9)}`
+// format a price string with 32-bit precision to a 9 decimal places decimal number
+function formatPrice32p(priceString32p: string) {
+  let with9DecimalPlaces = (BigInt(priceString32p) * BigInt(ONE_E9) / BigInt(TWO_POW_32)).toString()
+  return `${with9DecimalPlaces.slice(0, -9)}.${with9DecimalPlaces.slice(-9)}`
 }
 
 //-------------------------------
@@ -90,15 +94,16 @@ async function testCreateSecondaryVault(tokenName: string, tokenMint: string): P
 
   {
     const secondaryVaultState = await program.account.secondaryVaultState.fetch(vaultSecondaryStateAddress);
+    // console.log(secondaryVaultState)
     expect(secondaryVaultState.depositsDisabled).to.eql(true);
     expect(secondaryVaultState.inStrategiesAmount.toString()).to.eql("0");
     expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql("0");
     expect(secondaryVaultState.tokenMint).to.eql(tokenMintPublickey);
-    expect(secondaryVaultState.tokenSolPrice.toString()).to.eql("0");
-    expect(secondaryVaultState.solValue.toString()).to.eql("0");
+    expect(secondaryVaultState.lstSolPriceP32.toString()).to.eql("0");
+    expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql("0");
     expect(secondaryVaultState.ticketsTargetSolAmount.toString()).to.eql("0");
     expect(secondaryVaultState.vaultTokenAccount).to.eql(vaultTokenAccountAddress);
-    expect(secondaryVaultState.vaultTokenAmount.toString()).to.eql("0");
+    expect(secondaryVaultState.vaultTotalTokenAmount.toString()).to.eql("0");
     expect(secondaryVaultState.whitelistedStrategies.length.toString()).to.eql("0");
   }
 
@@ -178,7 +183,7 @@ describe("mp-sol-restaking", () => {
       await method.rpc();
       let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
       expect(wSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
-      expect(wSolSecondaryVaultState.tokenSolPrice.toString()).to.eql(ONE_BILLION);
+      expect(wSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(TWO_POW_32);
     }
 
     // ------------------------------
@@ -201,7 +206,7 @@ describe("mp-sol-restaking", () => {
       let poolInfoViaSdk = await marinade.getMarinadeState()
       splStakePool.stakePoolInfo(provider.connection, marinadeStatePubKey)
       console.log("mSOL price from sdk:", poolInfoViaSdk.mSolPrice)
-      const sdkComputedPrice = BigInt((poolInfoViaSdk.mSolPrice * Number(ONE_BILLION)).toFixed())
+      const sdkComputedPrice32p = BigInt((poolInfoViaSdk.mSolPrice * Number(TWO_POW_32)).toFixed())
 
       // 2nd call UpdateVaultPriceMethod for marinadeSecondaryVaultStateAddress
       const method = testGetUpdateVaultPriceMethod("mSOL", MARINADE_MSOL_MINT, marinadeSecondaryVaultStateAddress)
@@ -215,12 +220,12 @@ describe("mp-sol-restaking", () => {
 
       // execute the call
       let tx = await withRemainingAccounts.rpc();
-      let marinadeSecondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress)
+      let mSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress)
 
       // compare price results
-      console.log(formatPrice(marinadeSecondaryVaultState.tokenSolPrice.toString()))
-      expect(marinadeSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
-      expect(marinadeSecondaryVaultState.tokenSolPrice.toString()).to.eql(sdkComputedPrice.toString());
+      console.log("price from vault", formatPrice32p(mSolSecondaryVaultState.lstSolPriceP32.toString()))
+      expect(mSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
+      expect(mSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(sdkComputedPrice32p.toString());
 
       // ------------------------------
       // stake SOL and get some mSOL --- NOPE: we need to clone all marinade state accounts for this to work
@@ -301,8 +306,8 @@ describe("mp-sol-restaking", () => {
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
       expect(secondaryVaultState.depositsDisabled).to.eql(false);
       expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql(amountString);
-      const solValueComputed = amountMsolDeposited.mul(marinadeSecondaryVaultState.tokenSolPrice).div(new BN(ONE_BILLION));
-      expect(secondaryVaultState.solValue.toString()).to.eql(solValueComputed.toString());
+      const vaultSolValueComputed = amountMsolDeposited.mul(mSolSecondaryVaultState.lstSolPriceP32).div(new BN(TWO_POW_32));
+      expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql(vaultSolValueComputed.toString());
     }
 
     // ------------------------------
@@ -317,8 +322,8 @@ describe("mp-sol-restaking", () => {
       let jitoSolSplStakePoolStatePubKey = new PublicKey(JITO_SOL_SPL_STAKE_POOL_STATE_ADDRESS)
       // first get jitoSOL price by using @solana/spl-stake-pool SDK
       let poolInfoViaSdk = await splStakePool.stakePoolInfo(provider.connection, jitoSolSplStakePoolStatePubKey)
-      // console.log(poolInfoViaSdk)
-      const sdkComputedPrice = BigInt(poolInfoViaSdk.totalLamports) * BigInt(ONE_BILLION) / BigInt(poolInfoViaSdk.poolTokenSupply);
+      const sdkComputedPrice = BigInt(poolInfoViaSdk.totalLamports) * BigInt(TWO_POW_32) / BigInt(poolInfoViaSdk.poolTokenSupply);
+      console.log("jitoSOL price via SDK", formatPrice32p(sdkComputedPrice.toString()))
 
       // 2nd call UpdateVaultPriceMethod for jitoSolSecondaryVaultStateAddress
       const method = testGetUpdateVaultPriceMethod("jitoSOL", JITO_SOL_TOKEN_MINT, jitoSolSecondaryVaultStateAddress)
@@ -335,9 +340,9 @@ describe("mp-sol-restaking", () => {
       let jitoSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(jitoSolSecondaryVaultStateAddress)
 
       // compare price results
-      console.log(formatPrice(jitoSolSecondaryVaultState.tokenSolPrice.toString()))
+      console.log("jitoSOL price from vault:", formatPrice32p(jitoSolSecondaryVaultState.lstSolPriceP32.toString()))
       expect(jitoSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
-      expect(jitoSolSecondaryVaultState.tokenSolPrice.toString()).to.eql(sdkComputedPrice.toString());
+      expect(jitoSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(sdkComputedPrice.toString());
     }
 
 

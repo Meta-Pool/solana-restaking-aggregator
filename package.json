@@ -23,5 +23,8 @@
     "@solana/spl-token":"^0.4.6",
     "@marinade.finance/marinade-ts-sdk":"^5.0.11",
     "@solana/spl-stake-pool":"1.1.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

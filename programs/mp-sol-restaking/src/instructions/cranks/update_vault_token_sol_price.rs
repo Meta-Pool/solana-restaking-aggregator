@@ -1,11 +1,9 @@
-use crate::marinade_pool_interface::{
-    MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS,
-};
+use crate::marinade_pool_interface::{MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS};
 use crate::state::spl_stake_pool_interface::{
     AccountType, SplStakePoolState, SPL_STAKE_POOL_PROGRAM,
 };
 use crate::state::MainVaultState;
-use crate::util::{mul_div, ONE_BILLION};
+use crate::util::TWO_POW_32;
 use crate::{constants::*, error::ErrorCode, SecondaryVaultState};
 use anchor_lang::prelude::*;
 
@@ -54,10 +52,12 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
 pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
-    ctx.accounts.secondary_state.token_sol_price_timestamp = Clock::get().unwrap().unix_timestamp as u64;
-    ctx.accounts.secondary_state.token_sol_price = match ctx.accounts.token_mint.key() {
+    ctx.accounts.secondary_state.token_sol_price_timestamp =
+        Clock::get().unwrap().unix_timestamp as u64;
+    ctx.accounts.secondary_state.lst_sol_price_p32 = match ctx.accounts.token_mint.key() {
         // wSol is simple, always 1
-        WSOL_MINT => ONE_BILLION,
+        WSOL_MINT => TWO_POW_32,
+
         // mSol, read marinade state
         MARINADE_MSOL_MINT => {
             // assume the corresponding marinade state account sent in remaining_accounts
@@ -75,12 +75,8 @@ pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice
             let marinade_state: MarinadeState = MarinadeState::deserialize(&mut data_slice)?;
             // compute true price = total_lamports / pool_token_supply
             // https://docs.marinade.finance/marinade-protocol/system-overview/msol-token#msol-price
-            // convert marinade price denom 0x1_0000_0000 to our ONE_BILLION
-            mul_div(
-                marinade_state.msol_price,
-                ONE_BILLION,
-                0x1_0000_0000,
-            )
+            // marinade already uses 32-bit precision price
+            marinade_state.msol_price
         }
         // TODO: Inf/Sanctum
         ,
@@ -114,10 +110,11 @@ pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice
                 ErrorCode::AccountTypeIsNotStakePool
             );
             // compute true price = total_lamports / pool_token_supply
-            mul_div(
+            // with 32-bit precision
+            crate::util::mul_div(
                 spl_stake_pool_state.total_lamports,
-                ONE_BILLION,
-                spl_stake_pool_state.pool_token_supply,
+                TWO_POW_32,
+                spl_stake_pool_state.pool_token_supply
             )
         }
     };

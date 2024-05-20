@@ -1,4 +1,6 @@
-use crate::util::{apply_bp, check_price_not_stale, sol_value_to_token_amount, token_to_sol_value};
+use crate::util::{
+    apply_bp, check_price_not_stale, lst_amount_to_sol_value, sol_value_to_mpsol_amount,
+};
 use crate::{constants::*, error::ErrorCode, MainVaultState, SecondaryVaultState};
 /// Stake any of the supported LST tokens
 use anchor_lang::prelude::*;
@@ -10,6 +12,8 @@ use anchor_spl::{
 };
 
 #[derive(Accounts)]
+/// Stake a LST in one of the secondary vaults
+/// get mpSOL minted for the SOL-value of the deposit
 pub struct Stake<'info> {
     #[account(mut)]
     pub main_state: Account<'info, MainVaultState>,
@@ -56,31 +60,37 @@ pub struct Stake<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// amount is an lst amount
 pub fn handle_stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
-    // check deposits are enabled
+    // check deposits are enabled in this secondary-vault
     require_eq!(
         ctx.accounts.vault_state.deposits_disabled,
         false,
         ErrorCode::DepositsInThisVaultAreDisabled
     );
-    // check amount
+    // check amount > MIN_DEPOSIT_UNITS
     require_gte!(amount, MIN_DEPOSIT_UNITS, ErrorCode::DepositAmountToSmall);
 
     // check token_sol_price is not stale
     check_price_not_stale(ctx.accounts.vault_state.token_sol_price_timestamp)?;
 
-    // compute sol value
-    let deposited_sol_value = token_to_sol_value(amount, ctx.accounts.vault_state.token_sol_price);
+    // compute sol value of deposited LSTs
+    let deposited_sol_value =
+        lst_amount_to_sol_value(amount, ctx.accounts.vault_state.lst_sol_price_p32);
+    // check Sol-value > MIN_DEPOSIT_UNITS
     require_gte!(
         deposited_sol_value,
         MIN_DEPOSIT_UNITS,
         ErrorCode::DepositAmountToSmall
     );
 
-    // keep the total deposited sol value in vault_state
-    ctx.accounts.vault_state.sol_value += deposited_sol_value;
-    // also global for all vaults
-    //ctx.accounts.main_state.sol_value += deposited_sol_value;
+    // how much mpSOL is sol_value_deposited, at current price
+    // Note: do this computation before altering main_vault_backing_sol_value
+    let mpsol_amount = sol_value_to_mpsol_amount(
+        deposited_sol_value,
+        ctx.accounts.main_state.backing_sol_value,
+        ctx.accounts.mpsol_mint.supply,
+    );
 
     // Transfer tokens to vault account
     {
@@ -95,32 +105,15 @@ pub fn handle_stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
         );
         anchor_spl::token::transfer(cpi_ctx, amount)?;
     }
-
     // the tokens are added to locally stored amount
     ctx.accounts.vault_state.locally_stored_amount += amount;
 
     ctx.accounts.vault_state.check_cap()?;
 
-    // how much mpSOL is sol_value_deposited
-    let mpsol_amount = sol_value_to_token_amount(
-        deposited_sol_value,
-        ctx.accounts
-            .main_state
-            .mpsol_price(ctx.accounts.mpsol_mint.supply),
-    );
-
     // discount deposit fee, to avoid attack vectors
     let deposit_fee = apply_bp(mpsol_amount, ctx.accounts.main_state.deposit_fee_bp);
     // deposit fee is not minted, so it slightly raises mpSOL price
 
-    msg!(
-        "deposited_sol_value:{}, mpsol_amount:{}, mpsol_mint.supply:{} backing_sol_value:{} deposit_fee:{}",
-        deposited_sol_value,
-        mpsol_amount,
-        ctx.accounts.mpsol_mint.supply,
-        ctx.accounts.main_state.backing_sol_value,
-        deposit_fee,
-    );
     // mint mpSOL for the user
     mint_to(
         CpiContext::new_with_signer(
@@ -137,5 +130,26 @@ pub fn handle_stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
             ]],
         ),
         mpsol_amount - deposit_fee,
-    )
+    )?;
+
+    // -------
+    // keep contract internal accounting
+    // -------
+    // keep the total deposited sol value in vault_state
+    ctx.accounts.vault_state.vault_total_sol_value += deposited_sol_value;
+    // also the global sum for all vaults
+    // by adding to main_state.backing_sol_value, mpSOL price remains the same after the mint (+deposit_fee)
+    ctx.accounts.main_state.backing_sol_value += deposited_sol_value;
+
+    msg!(
+        "deposited_sol_value:{}, mpsol_amount:{}, new mpsol_mint.supply:{} new backing_sol_value:{} deposit_fee:{}",
+        deposited_sol_value,
+        mpsol_amount,
+        ctx.accounts.mpsol_mint.supply + mpsol_amount,
+        ctx.accounts.main_state.backing_sol_value,
+        deposit_fee,
+    );
+
+    Ok(())
+
 }

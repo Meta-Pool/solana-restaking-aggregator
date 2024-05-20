@@ -50,10 +50,10 @@ pub fn handle_create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Resu
     ctx.accounts.secondary_state.set_inner(SecondaryVaultState {
         token_mint: ctx.accounts.token_mint.key(),
         vault_token_account: ctx.accounts.vault_token_account.key(),
-        vault_token_amount: 0,
-        token_sol_price : 0,
+        vault_total_token_amount: 0,
+        lst_sol_price_p32 : 0,
         token_sol_price_timestamp : 0,
-        sol_value : 0,
+        vault_total_sol_value : 0,
         in_strategies_amount : 0,
         locally_stored_amount : 0,
         tickets_target_sol_amount : 0,
