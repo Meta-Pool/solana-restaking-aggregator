@@ -113,6 +113,7 @@ pub fn handle_stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
     // discount deposit fee, to avoid attack vectors
     let deposit_fee = apply_bp(mpsol_amount, ctx.accounts.main_state.deposit_fee_bp);
     // deposit fee is not minted, so it slightly raises mpSOL price
+    let mint_mpsol = mpsol_amount - deposit_fee;
 
     // mint mpSOL for the user
     mint_to(
@@ -129,7 +130,7 @@ pub fn handle_stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
                 &[ctx.bumps.mpsol_mint_authority],
             ]],
         ),
-        mpsol_amount - deposit_fee,
+        mint_mpsol,
     )?;
 
     // -------
@@ -141,15 +142,30 @@ pub fn handle_stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
     // by adding to main_state.backing_sol_value, mpSOL price remains the same after the mint (+deposit_fee)
     ctx.accounts.main_state.backing_sol_value += deposited_sol_value;
 
-    msg!(
-        "deposited_sol_value:{}, mpsol_amount:{}, new mpsol_mint.supply:{} new backing_sol_value:{} deposit_fee:{}",
+    // msg!(
+    //     "deposited_sol_value:{}, mpsol_amount:{}, new mpsol_mint.supply:{} new backing_sol_value:{} deposit_fee:{}",
+    //     deposited_sol_value,
+    //     mpsol_amount,
+    //     ctx.accounts.mpsol_mint.supply + mpsol_amount,
+    //     ctx.accounts.main_state.backing_sol_value,
+    //     deposit_fee,
+    // );
+
+    let event = crate::events::StakeEvent {
+        main_state: ctx.accounts.main_state.key(),
+        depositor: ctx.accounts.depositor.key(),
+        token_mint: ctx.accounts.token_mint.key(),
+        amount,
         deposited_sol_value,
-        mpsol_amount,
-        ctx.accounts.mpsol_mint.supply + mpsol_amount,
-        ctx.accounts.main_state.backing_sol_value,
+        depositor_lst_account: ctx.accounts.depositor_token_account.key(),
+        depositor_mpsol_account: ctx.accounts.depositor_mpsol_account.key(),
+        mpsol_received: mint_mpsol,
         deposit_fee,
-    );
-
+        //--- mpSOL price after the stake
+        main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
+        mpsol_supply: ctx.accounts.mpsol_mint.supply + mint_mpsol,
+    };
+    emit!(event);
+    msg!("{:?}", event);
     Ok(())
-
 }

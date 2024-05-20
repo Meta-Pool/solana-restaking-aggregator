@@ -4,15 +4,13 @@ import { MpSolRestaking } from "../target/types/mp_sol_restaking";
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import * as splStakePool from "@solana/spl-stake-pool";
 // @ts-ignore: marinade-sdk has @coral-xyz/anchor and an older version of @solana/spl-token -- vscode intellisense gets confused
-import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
+import { NATIVE_MINT, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
 
 import { Marinade, MarinadeConfig } from '@marinade.finance/marinade-ts-sdk'
 
 import { expect } from 'chai';
 import { BN } from "bn.js";
 import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens } from "./util/spl-token-mint-helpers";
-import { computeMsolAmount } from "@marinade.finance/marinade-ts-sdk/dist/src/util";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
 const ONE_E9: string = 1e9.toFixed()
 const TWO_POW_32: string = (2 ** 32).toFixed()
@@ -33,6 +31,8 @@ const program = anchor.workspace.MpSolRestaking as Program<MpSolRestaking>;
 const provider = program.provider as anchor.AnchorProvider;
 const wallet = provider.wallet;
 
+const stakeEventListenerNumber = program.addEventListener("stakeEvent", stakeEventHandler)
+
 const mainStateKeyPair = Keypair.generate()
 const mpsolTokenMintKeyPair = Keypair.generate()
 
@@ -40,6 +40,14 @@ const operatorAuthKeyPair = Keypair.generate()
 const strategyRebalancerAuthKeyPair = Keypair.generate()
 
 const depositorUserKeyPair = Keypair.generate()
+
+// monkey-patch BN so it shows decimal numbers on JSON stringify
+BN.prototype.toJSON = function(){ return this.toString()}
+
+function stakeEventHandler(stakeEvent, slot, signature) {
+  console.log("--- StakeEvent")
+  console.log(JSON.stringify(stakeEvent,undefined,4))
+}
 
 function idlConstant(idl: anchor.Idl, name: string) {
   try {
@@ -289,16 +297,17 @@ describe("mp-sol-restaking", () => {
           .rpc()
       }
 
-      {
-        console.log("stakeTx.simulate() -- no signers")
-        try {
-          let result = await stakeTx.simulate()
-          console.log(result)
-        }
-        catch (ex) {
-          console.log(ex)
-        }
-      }
+      // uncomment to show tx simulation program log
+      // {
+      //   console.log("stakeTx.simulate() -- no signers")
+      //   try {
+      //     let result = await stakeTx.simulate()
+      //     console.log(result)
+      //   }
+      //   catch (ex) {
+      //     console.log(ex)
+      //   }
+      // }
 
       {
         console.log("stakeTx.signers().rpc()")
@@ -365,11 +374,12 @@ describe("mp-sol-restaking", () => {
       console.log("jitoSOL price from vault:", formatPrice32p(jitoSolSecondaryVaultState.lstSolPriceP32.toString()))
       expect(jitoSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(jitoSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(sdkComputedPrice.toString());
+
+      program.removeEventListener(stakeEventListenerNumber)
+
     }
 
-
   });
-
 
 });
 

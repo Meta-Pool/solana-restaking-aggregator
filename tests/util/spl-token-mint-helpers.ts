@@ -119,12 +119,10 @@ export async function mintTokens(provider: Provider, wallet: any, mint: PublicKe
 
 export async function getTokenAccountBalance(provider: Provider, tokenAccount: PublicKey): Promise<string> {
     let result = await provider.connection.getTokenAccountBalance(tokenAccount)
-    console.log(result.value)
     return result.value.amount
 }
 
 export async function getTokenMintSupply(provider: Provider, mintAccount: PublicKey): Promise<string> {
     let result = await provider.connection.getTokenSupply(mintAccount)
-    console.log(result.value)
     return result.value.amount
 }
