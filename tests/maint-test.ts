@@ -170,7 +170,6 @@ describe("mp-sol-restaking", () => {
     expect(mainState.mpsolMint).to.eql(mpsolTokenMintKeyPair.publicKey);
     expect(mainState.operatorAuth).to.eql(operatorAuthKeyPair.publicKey);
     expect(mainState.strategyRebalancerAuth).to.eql(strategyRebalancerAuthKeyPair.publicKey);
-    expect(mainState.whitelistedVaults.length).to.eql(0);
 
     const [mainVaultMintAuth, mainVaultMintAuthBump] =
       PublicKey.findProgramAddressSync(

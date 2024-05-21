@@ -88,12 +88,13 @@ impl SecondaryVaultState {
 pub struct StrategyEntry {
     pub strategy_program: Pubkey,
     pub strategy_state_account: Pubkey,
-    /// last computation of lst-tokens in the strategy.
+
+    /// last computation of lst-token amount in the strategy.
     /// Incremented when depositing the LST token in the strategy
     /// Reduced manually when removing LST tokens from the strategy
     /// Incremented during strategy-amount-update, if the strategy generated yield in the form of more lst tokens
     /// The increment during strategy-amount-update also goes to in_strategies_amount and vault_total_amount,
-    /// later incrementing vault_total_sol_value, and by that increasing mpSOL price
+    /// incrementing vault_total_lst_amount => vault_total_sol_value => main_state.backing_sol_value and by that increasing mpSOL price
     pub last_computed_stored_lst_amount: u64,
     pub last_computed_stored_lst_timestamp: u64, // last run of strat-price-update
 }
