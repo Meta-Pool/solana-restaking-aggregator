@@ -130,14 +130,13 @@ async function testCreateSecondaryVault(tokenName: string, lstMint: string): Pro
 
 //-------------------------------
 /// returns vault state contents
-function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string, vaultStateAddress: PublicKey) {
+function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string) {
   // -----------------------
   console.log(`update ${tokenName} vault token price, lstMint:${lstMint}`)
   return program.methods.updateVaultTokenSolPrice()
     .accounts({
-      admin: wallet.publicKey,
-      secondaryState: vaultStateAddress,
       mainState: mainStateKeyPair.publicKey,
+      lstMint: lstMint,
     })
     .remainingAccounts([])
 }
@@ -197,7 +196,7 @@ describe("mp-sol-restaking", () => {
 
     // test wSOL update price (simple, always 1)
     {
-      const method = testGetUpdateVaultPriceMethod("wSOL", WSOL_TOKEN_MINT, wSolSecondaryStateAddress);
+      const method = testGetUpdateVaultPriceMethod("wSOL", WSOL_TOKEN_MINT);
       await method.rpc();
       let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
       expect(wSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
@@ -250,7 +249,7 @@ describe("mp-sol-restaking", () => {
 
       {
         // 2nd call UpdateVaultPriceMethod for marinadeSecondaryVaultStateAddress
-        const method = testGetUpdateVaultPriceMethod("mSOL", MARINADE_MSOL_MINT, marinadeSecondaryVaultStateAddress)
+        const method = testGetUpdateVaultPriceMethod("mSOL", MARINADE_MSOL_MINT)
         const withRemainingAccounts = method.remainingAccounts([{
           pubkey: marinadeStatePubKey, isSigner: false, isWritable: false
         }]);
@@ -373,7 +372,7 @@ describe("mp-sol-restaking", () => {
       console.log("jitoSOL price via SDK", formatPrice32p(sdkComputedPrice.toString()))
 
       // 2nd call UpdateVaultPriceMethod for jitoSolSecondaryVaultStateAddress
-      const method = testGetUpdateVaultPriceMethod("jitoSOL", JITO_SOL_TOKEN_MINT, jitoSolSecondaryVaultStateAddress)
+      const method = testGetUpdateVaultPriceMethod("jitoSOL", JITO_SOL_TOKEN_MINT)
       const withRemainingAccounts = method.remainingAccounts([{
         pubkey: jitoSolSplStakePoolStatePubKey, isSigner: false, isWritable: false
       }]);

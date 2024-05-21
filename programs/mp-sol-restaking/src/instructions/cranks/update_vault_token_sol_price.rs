@@ -12,12 +12,13 @@ use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
 use anchor_spl::token::{Mint, Token};
 
 #[derive(Accounts)]
+// permissionless
 pub struct UpdateVaultTokenSolPrice<'info> {
     #[account(mut)]
-    pub admin: Signer<'info>,
-
-    #[account(mut, has_one=admin)]
     pub main_state: Account<'info, MainVaultState>,
+
+    #[account()]
+    pub lst_mint: Account<'info, Mint>,
 
     #[account(mut,
         has_one = lst_mint,
@@ -28,23 +29,7 @@ pub struct UpdateVaultTokenSolPrice<'info> {
         bump
     )]
     pub secondary_state: Account<'info, SecondaryVaultState>,
-
-    #[account(mint::decimals = 9)]
-    // all mints must have 9 decimals, to simplify x/SOL price calculations
-    pub lst_mint: Account<'info, Mint>,
-
-    /// CHECK: Auth PDA
-    #[account(
-        seeds = [
-            &main_state.key().to_bytes(),
-            VAULTS_ATA_AUTH_SEED
-        ],
-        bump
-    )]
-    pub vaults_ata_pda_auth: UncheckedAccount<'info>,
-
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
+    
 }
 
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");

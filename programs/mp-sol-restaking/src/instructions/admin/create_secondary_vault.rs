@@ -6,6 +6,11 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::TokenAccount;
 use anchor_spl::token::{Mint, Token};
 
+/// Note: Before adding a secondary vault 
+/// THE CONTRACT CODE OF THE LST HAS TO BE VERIFIED
+/// Adding the LST means adding sol-value to the main vault
+/// so it is important to ensure that the LST is a valid LST
+/// with full SOL backing and permissionless unstake
 #[derive(Accounts)]
 pub struct CreateSecondaryVault<'info> {
     #[account(mut)]
@@ -18,6 +23,17 @@ pub struct CreateSecondaryVault<'info> {
     // all LST mints must have 9 decimals, to simplify x/SOL price calculations
     pub lst_mint: Account<'info, Mint>,
 
+    // secondary vaults are PDAs of main_state
+    // only this program & main_state can create a secondary vault
+    #[account(init, payer = admin, space = 8 + SecondaryVaultState::INIT_SPACE,
+        seeds = [
+            &main_state.key().to_bytes(),
+            &lst_mint.key().to_bytes(),
+        ],
+        bump
+    )]
+    pub vault_state: Account<'info, SecondaryVaultState>,
+
     /// CHECK: Auth PDA
     #[account(
         seeds = [
@@ -27,15 +43,6 @@ pub struct CreateSecondaryVault<'info> {
         bump
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
-
-    #[account(init, payer = admin, space = 8 + SecondaryVaultState::INIT_SPACE,
-        seeds = [
-            &main_state.key().to_bytes(),
-            &lst_mint.key().to_bytes(),
-        ],
-        bump
-    )]
-    pub vault_state: Account<'info, SecondaryVaultState>,
 
     #[account(init, payer = admin, 
         associated_token::mint = lst_mint, 
