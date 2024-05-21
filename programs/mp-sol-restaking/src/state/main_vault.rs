@@ -6,16 +6,14 @@ use crate::constants::*;
 #[account]
 #[derive(InitSpace)]
 pub struct MainVaultState {
+    // main admin, normally the DAO auth
     pub admin: Pubkey,
-    pub operator_auth: Pubkey, // authority to set parameters, token_deposit_caps & whitelisted_strategies, normally a DAO-authorized bot acting on votes
-    pub strategy_rebalancer_auth: Pubkey, // authority to move tokens in or out strategies, normally a DAO-authorized bot acting on votes
-
-    pub deposit_fee_bp: u16, // normally 0.1%
+    /// authority to set parameters, token_deposit_caps & whitelisted_strategies, normally a DAO-authorized bot acting on votes
+    pub operator_auth: Pubkey, 
+    /// authority to move tokens in or out strategies, normally a DAO-authorized bot acting on votes
+    pub strategy_rebalancer_auth: Pubkey, 
 
     pub mpsol_mint: Pubkey,
-
-    #[max_len(MAX_WHITELISTED_VAULTS)]
-    pub whitelisted_vaults: Vec<VaultEntry>,
 
     /// SOL-value backing the mpsol.supply
     /// "SOL-value" is the estimation of the SOL backing all the LSTs stored in the vaults
@@ -31,6 +29,15 @@ pub struct MainVaultState {
     /// and then `outstanding_tickets_sol_value is` reduced
     /// invariant: sum(whitelisted_vaults.last_sol_value) = backing_sol_value + outstanding_tickets_sol_value
     pub outstanding_tickets_sol_value: u64,
+
+    // Config:
+    /// normally 0.1%
+    pub deposit_fee_bp: u16, 
+    /// normally 48, number of hours for a ticket to be due 
+    pub unstake_ticket_waiting_hours: u16, 
+
+    #[max_len(MAX_WHITELISTED_VAULTS)]
+    pub whitelisted_vaults: Vec<VaultEntry>,
 }
 
 /// secondary-vault entry in main-vault whitelist

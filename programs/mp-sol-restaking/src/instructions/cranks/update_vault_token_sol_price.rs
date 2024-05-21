@@ -9,7 +9,6 @@ use anchor_lang::prelude::*;
 
 use ::borsh::BorshDeserialize;
 use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
-use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token};
 
 #[derive(Accounts)]
@@ -44,7 +43,6 @@ pub struct UpdateVaultTokenSolPrice<'info> {
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
 
-    pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }

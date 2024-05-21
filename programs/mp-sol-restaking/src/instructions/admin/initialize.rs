@@ -38,11 +38,12 @@ pub fn handle_initialize(ctx: Context<Initialize>, operator_auth:Pubkey, strateg
         admin: ctx.accounts.admin.key(),
         operator_auth,
         strategy_rebalancer_auth,
-        deposit_fee_bp: 10,
         mpsol_mint: ctx.accounts.mpsol_token_mint.key(),
         whitelisted_vaults: Vec::with_capacity(MAX_WHITELISTED_VAULTS as usize),
         backing_sol_value: 0,
         outstanding_tickets_sol_value: 0,
+        deposit_fee_bp: 10,
+        unstake_ticket_waiting_hours: 48,
     });
     Ok(())
 }

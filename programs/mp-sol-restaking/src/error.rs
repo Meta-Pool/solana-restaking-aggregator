@@ -41,4 +41,10 @@ pub enum ErrorCode {
 
     #[msg("Deposits in this vault are disabled")]
     DepositsInThisVaultAreDisabled,
+
+    #[msg("Invalid Stored Lst Price")]
+    InvalidStoredLstPrice,
+
+    #[msg("Unstake amount too small")]
+    UnstakeAmountToSmall, 
 }

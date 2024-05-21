@@ -47,7 +47,12 @@ pub mod mp_sol_restaking {
     // ------------------
     // users
     // ------------------
-    pub fn stake(ctx: Context<Stake>, amount: u64) -> Result<()> {
-        users::stake::handle_stake(ctx, amount)
+    pub fn stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
+        users::stake::handle_stake(ctx, lst_amount)
     }
+
+    pub fn unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
+        users::unstake::handle_unstake(ctx, mpsol_amount)
+    }
+    
 }

@@ -35,10 +35,12 @@ pub struct CreateSecondaryVault<'info> {
         ],
         bump
     )]
-    pub secondary_state: Account<'info, SecondaryVaultState>,
+    pub vault_state: Account<'info, SecondaryVaultState>,
 
     #[account(init, payer = admin, 
-        associated_token::mint = token_mint, associated_token::authority = vaults_ata_pda_auth)]
+        associated_token::mint = token_mint, 
+        associated_token::authority = vaults_ata_pda_auth
+    )]
     pub vault_token_account: Account<'info, TokenAccount>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -47,7 +49,7 @@ pub struct CreateSecondaryVault<'info> {
 }
 
 pub fn handle_create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Result<()> {
-    ctx.accounts.secondary_state.set_inner(SecondaryVaultState {
+    ctx.accounts.vault_state.set_inner(SecondaryVaultState {
         token_mint: ctx.accounts.token_mint.key(),
         vault_token_account: ctx.accounts.vault_token_account.key(),
         vault_total_token_amount: 0,
