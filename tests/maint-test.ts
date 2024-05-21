@@ -122,7 +122,6 @@ async function testCreateSecondaryVault(tokenName: string, lstMint: string): Pro
     expect(secondaryVaultState.ticketsTargetSolAmount.toString()).to.eql("0");
     expect(secondaryVaultState.vaultLstAccount).to.eql(vaultTokenAccountAddress);
     expect(secondaryVaultState.vaultTotalLstAmount.toString()).to.eql("0");
-    expect(secondaryVaultState.whitelistedStrategies.length.toString()).to.eql("0");
   }
 
   return vaultSecondaryStateAddress

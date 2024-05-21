@@ -44,6 +44,12 @@ pub mod mp_sol_restaking {
         configure_secondary_vault::handle_configure_secondary_vault(ctx, values)
     }
 
+    pub fn attach_common_strategy_state(
+        ctx: Context<AttachCommonStrategyState>
+    ) -> Result<()> {
+        attach_common_strategy_state::handle_attach_common_strategy_state(ctx)
+    }
+
     // ------------------
     // users
     // ------------------

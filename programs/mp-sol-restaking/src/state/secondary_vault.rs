@@ -50,8 +50,6 @@ pub struct SecondaryVaultState {
     /// 0 means no cap - measured in vault accepted tokens
     pub token_deposit_cap: u64,
 
-    #[max_len(32)]
-    pub whitelisted_strategies: Vec<StrategyEntry>,
 }
 
 impl SecondaryVaultState {
@@ -82,19 +80,3 @@ impl SecondaryVaultState {
     }
 }
 
-/// secondary-vault entry in main-vault whitelist
-#[account]
-#[derive(InitSpace)]
-pub struct StrategyEntry {
-    pub strategy_program: Pubkey,
-    pub strategy_state_account: Pubkey,
-
-    /// last computation of lst-token amount in the strategy.
-    /// Incremented when depositing the LST token in the strategy
-    /// Reduced manually when removing LST tokens from the strategy
-    /// Incremented during strategy-amount-update, if the strategy generated yield in the form of more lst tokens
-    /// The increment during strategy-amount-update also goes to in_strategies_amount and vault_total_amount,
-    /// incrementing vault_total_lst_amount => vault_total_sol_value => main_state.backing_sol_value and by that increasing mpSOL price
-    pub last_computed_stored_lst_amount: u64,
-    pub last_computed_stored_lst_timestamp: u64, // last run of strat-price-update
-}

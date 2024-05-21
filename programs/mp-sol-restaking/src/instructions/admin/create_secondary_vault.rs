@@ -68,7 +68,6 @@ pub fn handle_create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Resu
         tickets_target_sol_amount : 0,
         deposits_disabled : true,
         token_deposit_cap : 0,
-        whitelisted_strategies : Vec::with_capacity(MAX_WHITELISTED_VAULT_STRATEGIES as usize),
     });
     Ok(())
 }
