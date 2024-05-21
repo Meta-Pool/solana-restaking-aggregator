@@ -4,12 +4,12 @@ use crate::state::external::spl_stake_pool_state::{
 };
 use crate::state::MainVaultState;
 use crate::util::TWO_POW_32;
-use crate::{constants::*, error::ErrorCode, SecondaryVaultState};
+use crate::{error::ErrorCode, SecondaryVaultState};
 use anchor_lang::prelude::*;
 
 use ::borsh::BorshDeserialize;
 use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
-use anchor_spl::token::{Mint, Token};
+use anchor_spl::token::Mint;
 
 #[derive(Accounts)]
 // permissionless

@@ -17,7 +17,7 @@ pub struct ConfigureSecondaryVault<'info> {
     #[account(has_one=admin)]
     pub main_state: Account<'info, MainVaultState>,
 
-    #[account(mint::decimals = 9)]
+    #[account()]
     // all mints must have 9 decimals, to simplify x/SOL price calculations
     pub lst_mint: Account<'info, Mint>,
 
@@ -31,7 +31,6 @@ pub struct ConfigureSecondaryVault<'info> {
     )]
     pub secondary_state: Account<'info, SecondaryVaultState>,
 
-    pub system_program: Program<'info, System>,
 }
 
 pub fn handle_configure_secondary_vault(

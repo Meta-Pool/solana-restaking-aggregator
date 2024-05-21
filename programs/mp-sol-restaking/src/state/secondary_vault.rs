@@ -11,7 +11,7 @@ use crate::util::sol_value_to_lst_amount;
 pub struct SecondaryVaultState {
     /// the LST type stored in this vault
     pub lst_mint: Pubkey,
-    /// locally_stored_amount ls tokens are sotred here
+    /// locally_stored_amount ls tokens are stored here
     pub vault_lst_account: Pubkey,
 
     /// LST-token/SOL price with 32-bit precision, cache of last computation of LST-token/SOL price,

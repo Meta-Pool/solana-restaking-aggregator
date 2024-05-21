@@ -144,7 +144,6 @@ function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string) {
 
 // ------------------------------
 describe("mp-sol-restaking", () => {
-  // Configure the client to use the local cluster.
 
   it("main path testing", async () => {
 
