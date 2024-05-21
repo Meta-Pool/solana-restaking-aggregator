@@ -1,9 +1,11 @@
-use crate::state::external::marinade_pool_state::{MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS};
+use crate::state::external::marinade_pool_state::{
+    MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS,
+};
 use crate::state::external::spl_stake_pool_state::{
     AccountType, SplStakePoolState, SPL_STAKE_POOL_PROGRAM,
 };
 use crate::state::MainVaultState;
-use crate::util::TWO_POW_32;
+use crate::util::{lst_amount_to_sol_value, TWO_POW_32};
 use crate::{error::ErrorCode, SecondaryVaultState};
 use anchor_lang::prelude::*;
 
@@ -29,15 +31,15 @@ pub struct UpdateVaultTokenSolPrice<'info> {
         bump
     )]
     pub secondary_state: Account<'info, SecondaryVaultState>,
-    
 }
 
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
 pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
-    ctx.accounts.secondary_state.lst_sol_price_timestamp =
-        Clock::get().unwrap().unix_timestamp as u64;
-    ctx.accounts.secondary_state.lst_sol_price_p32 = match ctx.accounts.lst_mint.key() {
+    //
+    let old_price_p32 = ctx.accounts.secondary_state.lst_sol_price_p32;
+
+    let new_price_p32 = match ctx.accounts.lst_mint.key() {
         // wSol is simple, always 1
         WSOL_MINT => TWO_POW_32,
 
@@ -83,10 +85,7 @@ pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice
             // debug log show data
             // msg!("stake_pool={:?}", spl_stake_pool_state);
             // verify mint
-            require_keys_eq!(
-                spl_stake_pool_state.pool_mint,
-                ctx.accounts.lst_mint.key()
-            );
+            require_keys_eq!(spl_stake_pool_state.pool_mint, ctx.accounts.lst_mint.key());
             // verify type
             require!(
                 spl_stake_pool_state.account_type == AccountType::StakePool,
@@ -97,9 +96,49 @@ pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice
             crate::util::mul_div(
                 spl_stake_pool_state.total_lamports,
                 TWO_POW_32,
-                spl_stake_pool_state.pool_token_supply
+                spl_stake_pool_state.pool_token_supply,
             )
         }
     };
+
+    // Phase 1. Collect values
+    let lst_amount = ctx.accounts.secondary_state.vault_total_lst_amount;
+    let old_sol_value = lst_amount_to_sol_value(lst_amount, old_price_p32);
+    let new_sol_value = lst_amount_to_sol_value(lst_amount, new_price_p32);
+    let (profit, slashing) = {
+        // Phase 2. ?
+        if new_sol_value >= old_sol_value {
+            // Phase 3. Profit!
+            (new_sol_value - old_sol_value, 0)
+        } else {
+            // slashed? :(
+            (0, old_sol_value - new_sol_value)
+        }
+    };
+    // update this vault total_sol_value with delta
+    ctx.accounts.secondary_state.vault_total_sol_value =
+        ctx.accounts.secondary_state.vault_total_sol_value + profit - slashing;
+
+    // update main_state.backing_sol_value with delta
+    ctx.accounts.main_state.backing_sol_value =
+        ctx.accounts.main_state.backing_sol_value + profit - slashing;
+
+    // update last price and timestamp
+    ctx.accounts.secondary_state.lst_sol_price_p32 = new_price_p32;
+    ctx.accounts.secondary_state.lst_sol_price_timestamp =
+        Clock::get().unwrap().unix_timestamp as u64;
+
+    emit!(crate::events::UpdateVaultTokenSolPriceEvent {
+        main_state: ctx.accounts.main_state.key(),
+        lst_mint: ctx.accounts.lst_mint.key(),
+        lst_amount,
+        old_price_p32,
+        old_sol_value,
+        new_price_p32,
+        new_sol_value,
+        vault_total_sol_value: ctx.accounts.secondary_state.vault_total_sol_value,
+        main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
+    });
+
     Ok(())
 }

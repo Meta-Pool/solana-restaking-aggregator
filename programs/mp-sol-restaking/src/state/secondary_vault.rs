@@ -23,7 +23,7 @@ pub struct SecondaryVaultState {
     /// last computation of token_sol_price, price is obtained ON-CHAIN, read from the LST token program state
     pub lst_sol_price_timestamp: u64,
 
-    /// SOL value of the entire vault, vault_total_token_amount * token_sol_price
+    /// SOL value of the entire vault, vault_total_token_amount * lst_token_sol_price
     pub vault_total_sol_value: u64,
 
     /// token amount here (not in strategies)

@@ -28,3 +28,16 @@ pub struct UnstakeEvent {
     pub main_vault_backing_sol_value: u64,
     pub mpsol_supply: u64,
 }
+
+#[event]
+pub struct UpdateVaultTokenSolPriceEvent {
+    pub main_state: Pubkey,
+    pub lst_mint: Pubkey,
+    pub lst_amount: u64,
+    pub old_price_p32: u64,
+    pub old_sol_value: u64,
+    pub new_price_p32: u64,
+    pub new_sol_value: u64,
+    pub vault_total_sol_value: u64,
+    pub main_vault_backing_sol_value: u64,
+}
