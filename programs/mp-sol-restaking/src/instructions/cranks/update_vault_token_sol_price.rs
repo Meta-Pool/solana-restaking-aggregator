@@ -1,5 +1,5 @@
-use crate::marinade_pool_interface::{MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS};
-use crate::state::spl_stake_pool_interface::{
+use crate::state::external::marinade_pool_state::{MarinadeState, MARINADE_MSOL_MINT, MARINADE_STATE_ADDRESS};
+use crate::state::external::spl_stake_pool_state::{
     AccountType, SplStakePoolState, SPL_STAKE_POOL_PROGRAM,
 };
 use crate::state::MainVaultState;
