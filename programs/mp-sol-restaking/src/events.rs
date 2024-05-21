@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 #[event]
 pub struct StakeEvent {
     pub main_state: Pubkey,
-    pub token_mint: Pubkey,
+    pub lst_mint: Pubkey,
     pub depositor: Pubkey,
     pub lst_amount: u64,
     pub deposited_sol_value: u64,

@@ -75,15 +75,15 @@ async function airdropLamports(provider:Provider, pubkey: PublicKey, amountSol: 
 }
 //-------------------------------
 /// returns vault state address
-async function testCreateSecondaryVault(tokenName: string, tokenMint: string): Promise<PublicKey> {
+async function testCreateSecondaryVault(tokenName: string, lstMint: string): Promise<PublicKey> {
   // creating a secondary vault
-  console.log(`creating ${tokenName} secondary vault, tokenMint:${tokenMint}`)
-  let tokenMintPublickey = new PublicKey(tokenMint);
+  console.log(`creating ${tokenName} secondary vault, lstMint:${lstMint}`)
+  let lstMintPublickey = new PublicKey(lstMint);
   const [vaultSecondaryStateAddress, wSolSecondaryStateBump] =
     PublicKey.findProgramAddressSync(
       [
         mainStateKeyPair.publicKey.toBuffer(),
-        tokenMintPublickey.toBuffer(),
+        lstMintPublickey.toBuffer(),
       ],
       program.programId
     )
@@ -98,15 +98,15 @@ async function testCreateSecondaryVault(tokenName: string, tokenMint: string): P
     )
 
   const vaultTokenAccountAddress =
-    getAssociatedTokenAddressSync(tokenMintPublickey, vaultsTokenAtaPdaAuth, true);
+    getAssociatedTokenAddressSync(lstMintPublickey, vaultsTokenAtaPdaAuth, true);
 
   const tx2 = await program.methods.createSecondaryVault()
     .accounts({
       admin: wallet.publicKey,
       mainState: mainStateKeyPair.publicKey,
-      tokenMint: tokenMintPublickey,
+      lstMint: lstMintPublickey,
       secondaryState: vaultSecondaryStateAddress,
-      vaultTokenAccount: vaultTokenAccountAddress
+      vaultLstAccount: vaultTokenAccountAddress
     })
     .rpc();
 
@@ -116,12 +116,12 @@ async function testCreateSecondaryVault(tokenName: string, tokenMint: string): P
     expect(secondaryVaultState.depositsDisabled).to.eql(true);
     expect(secondaryVaultState.inStrategiesAmount.toString()).to.eql("0");
     expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql("0");
-    expect(secondaryVaultState.tokenMint).to.eql(tokenMintPublickey);
+    expect(secondaryVaultState.lstMint).to.eql(lstMintPublickey);
     expect(secondaryVaultState.lstSolPriceP32.toString()).to.eql("0");
     expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql("0");
     expect(secondaryVaultState.ticketsTargetSolAmount.toString()).to.eql("0");
-    expect(secondaryVaultState.vaultTokenAccount).to.eql(vaultTokenAccountAddress);
-    expect(secondaryVaultState.vaultTotalTokenAmount.toString()).to.eql("0");
+    expect(secondaryVaultState.vaultLstAccount).to.eql(vaultTokenAccountAddress);
+    expect(secondaryVaultState.vaultTotalLstAmount.toString()).to.eql("0");
     expect(secondaryVaultState.whitelistedStrategies.length.toString()).to.eql("0");
   }
 
@@ -130,9 +130,9 @@ async function testCreateSecondaryVault(tokenName: string, tokenMint: string): P
 
 //-------------------------------
 /// returns vault state contents
-function testGetUpdateVaultPriceMethod(tokenName: string, tokenMint: string, vaultStateAddress: PublicKey) {
+function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string, vaultStateAddress: PublicKey) {
   // -----------------------
-  console.log(`update ${tokenName} vault token price, tokenMint:${tokenMint}`)
+  console.log(`update ${tokenName} vault token price, lstMint:${lstMint}`)
   return program.methods.updateVaultTokenSolPrice()
     .accounts({
       admin: wallet.publicKey,
@@ -200,7 +200,7 @@ describe("mp-sol-restaking", () => {
       const method = testGetUpdateVaultPriceMethod("wSOL", WSOL_TOKEN_MINT, wSolSecondaryStateAddress);
       await method.rpc();
       let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
-      expect(wSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
+      expect(wSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(wSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(TWO_POW_32);
     }
 
@@ -265,7 +265,7 @@ describe("mp-sol-restaking", () => {
 
         // compare price results
         console.log("price from vault", formatPrice32p(mSolSecondaryVaultState.lstSolPriceP32.toString()))
-        expect(mSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
+        expect(mSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
         expect(mSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(sdkComputedPrice32p.toString());
       }
 
@@ -279,10 +279,10 @@ describe("mp-sol-restaking", () => {
         .stake(amountMsolDeposited)
         .accounts({
           mainState: mainStateKeyPair.publicKey,
-          tokenMint: new PublicKey(MARINADE_MSOL_MINT),
+          lstMint: new PublicKey(MARINADE_MSOL_MINT),
           vaultState: marinadeSecondaryVaultStateAddress,
           depositor: depositorUserKeyPair.publicKey,
-          depositorTokenAccount: depositorAtaMsol,
+          depositorLstAccount: depositorAtaMsol,
           mpsolMint: mpsolTokenMintKeyPair.publicKey,
           depositorMpsolAccount: depositorMpSolAta,
         })
@@ -297,7 +297,7 @@ describe("mp-sol-restaking", () => {
         expect(false, "stakeTx.rpc() should throw");
       }
       catch (ex) {
-        //console.log("simulate throw ex:", )
+        //console.log("simulate throw ex:", ex)
         expect(JSON.stringify(ex)).to.contain("DepositsInThisVaultAreDisabled")
       }
 
@@ -307,7 +307,7 @@ describe("mp-sol-restaking", () => {
           .accounts({
             admin: wallet.publicKey,
             mainState: mainStateKeyPair.publicKey,
-            tokenMint: new PublicKey(MARINADE_MSOL_MINT),
+            lstMint: new PublicKey(MARINADE_MSOL_MINT),
           })
           .rpc()
       }
@@ -388,7 +388,7 @@ describe("mp-sol-restaking", () => {
 
       // compare price results
       console.log("jitoSOL price from vault:", formatPrice32p(jitoSolSecondaryVaultState.lstSolPriceP32.toString()))
-      expect(jitoSolSecondaryVaultState.tokenSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
+      expect(jitoSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(jitoSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(sdkComputedPrice.toString());
 
       // stake jito-SOL
@@ -405,7 +405,7 @@ describe("mp-sol-restaking", () => {
             .accounts({
               admin: wallet.publicKey,
               mainState: mainStateKeyPair.publicKey,
-              tokenMint: new PublicKey(JITO_SOL_TOKEN_MINT),
+              lstMint: new PublicKey(JITO_SOL_TOKEN_MINT),
             })
             .rpc()
         }
@@ -415,10 +415,10 @@ describe("mp-sol-restaking", () => {
           .stake(amountJitoSolDeposited)
           .accounts({
             mainState: mainStateKeyPair.publicKey,
-            tokenMint: new PublicKey(JITO_SOL_TOKEN_MINT),
+            lstMint: new PublicKey(JITO_SOL_TOKEN_MINT),
             vaultState: jitoSolSecondaryVaultStateAddress,
             depositor: depositorUserKeyPair.publicKey,
-            depositorTokenAccount: depositorAtaJitoSol,
+            depositorLstAccount: depositorAtaJitoSol,
             mpsolMint: mpsolTokenMintKeyPair.publicKey,
             depositorMpsolAccount: depositorMpSolAta,
           })

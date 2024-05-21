@@ -45,8 +45,8 @@ pub struct MainVaultState {
 #[derive(InitSpace)]
 pub struct VaultEntry {
     /// LST token ming, must have mint:decimals=9 
-    /// secondary-vault-state address is PDA(main_state, token_mint)
-    pub token_mint: Pubkey, 
+    /// secondary-vault-state address is PDA(main_state, lst_mint)
+    pub lst_mint: Pubkey, 
     /// last computation of SOL-value in the secondary-vault. 
     /// Includes backing_sol_value and SOL-value reserved for unstake-tickets
     /// Incremented when depositing the LST token and minting mpSOL in such a way that mpSOL price does not change

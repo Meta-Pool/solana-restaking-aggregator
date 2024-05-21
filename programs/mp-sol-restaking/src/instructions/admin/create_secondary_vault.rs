@@ -15,8 +15,8 @@ pub struct CreateSecondaryVault<'info> {
     pub main_state: Account<'info, MainVaultState>,
 
     #[account(mint::decimals = 9)]
-    // all mints must have 9 decimals, to simplify x/SOL price calculations
-    pub token_mint: Account<'info, Mint>,
+    // all LST mints must have 9 decimals, to simplify x/SOL price calculations
+    pub lst_mint: Account<'info, Mint>,
 
     /// CHECK: Auth PDA
     #[account(
@@ -31,17 +31,17 @@ pub struct CreateSecondaryVault<'info> {
     #[account(init, payer = admin, space = 8 + SecondaryVaultState::INIT_SPACE,
         seeds = [
             &main_state.key().to_bytes(),
-            &token_mint.key().to_bytes(),
+            &lst_mint.key().to_bytes(),
         ],
         bump
     )]
     pub vault_state: Account<'info, SecondaryVaultState>,
 
     #[account(init, payer = admin, 
-        associated_token::mint = token_mint, 
+        associated_token::mint = lst_mint, 
         associated_token::authority = vaults_ata_pda_auth
     )]
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_lst_account: Account<'info, TokenAccount>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -50,11 +50,11 @@ pub struct CreateSecondaryVault<'info> {
 
 pub fn handle_create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Result<()> {
     ctx.accounts.vault_state.set_inner(SecondaryVaultState {
-        token_mint: ctx.accounts.token_mint.key(),
-        vault_token_account: ctx.accounts.vault_token_account.key(),
-        vault_total_token_amount: 0,
+        lst_mint: ctx.accounts.lst_mint.key(),
+        vault_lst_account: ctx.accounts.vault_lst_account.key(),
+        vault_total_lst_amount: 0,
         lst_sol_price_p32 : 0,
-        token_sol_price_timestamp : 0,
+        lst_sol_price_timestamp : 0,
         vault_total_sol_value : 0,
         in_strategies_amount : 0,
         locally_stored_amount : 0,

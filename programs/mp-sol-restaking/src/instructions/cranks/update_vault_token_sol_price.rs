@@ -20,10 +20,10 @@ pub struct UpdateVaultTokenSolPrice<'info> {
     pub main_state: Account<'info, MainVaultState>,
 
     #[account(mut,
-        has_one = token_mint,
+        has_one = lst_mint,
         seeds = [
             &main_state.key().to_bytes(),
-            &token_mint.key().to_bytes(),
+            &lst_mint.key().to_bytes(),
         ],
         bump
     )]
@@ -31,7 +31,7 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 
     #[account(mint::decimals = 9)]
     // all mints must have 9 decimals, to simplify x/SOL price calculations
-    pub token_mint: Account<'info, Mint>,
+    pub lst_mint: Account<'info, Mint>,
 
     /// CHECK: Auth PDA
     #[account(
@@ -50,9 +50,9 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
 pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
-    ctx.accounts.secondary_state.token_sol_price_timestamp =
+    ctx.accounts.secondary_state.lst_sol_price_timestamp =
         Clock::get().unwrap().unix_timestamp as u64;
-    ctx.accounts.secondary_state.lst_sol_price_p32 = match ctx.accounts.token_mint.key() {
+    ctx.accounts.secondary_state.lst_sol_price_p32 = match ctx.accounts.lst_mint.key() {
         // wSol is simple, always 1
         WSOL_MINT => TWO_POW_32,
 
@@ -100,7 +100,7 @@ pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice
             // verify mint
             require_keys_eq!(
                 spl_stake_pool_state.pool_mint,
-                ctx.accounts.token_mint.key()
+                ctx.accounts.lst_mint.key()
             );
             // verify type
             require!(

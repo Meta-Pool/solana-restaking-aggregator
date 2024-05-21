@@ -15,12 +15,12 @@ pub struct Stake<'info> {
     pub main_state: Account<'info, MainVaultState>,
 
     #[account()]
-    pub token_mint: Box<Account<'info, Mint>>,
+    pub lst_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, has_one=token_mint, has_one=vault_token_account,
+    #[account(mut, has_one=lst_mint, has_one=vault_lst_account,
         seeds = [
             &main_state.key().to_bytes(),
-            &token_mint.key().to_bytes(),
+            &lst_mint.key().to_bytes(),
         ],
         bump
     )]
@@ -35,16 +35,16 @@ pub struct Stake<'info> {
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
     #[account(mut, 
-        associated_token::mint = token_mint, 
+        associated_token::mint = lst_mint, 
         associated_token::authority = vaults_ata_pda_auth
     )]
     // where the lst tokens are stored while not in strategies
-    pub vault_token_account: Account<'info, TokenAccount>,
+    pub vault_lst_account: Account<'info, TokenAccount>,
 
     #[account()]
     pub depositor: Signer<'info>,
-    #[account(mut, token::mint = token_mint, token::authority = depositor)]
-    pub depositor_token_account: Account<'info, TokenAccount>,
+    #[account(mut, token::mint = lst_mint, token::authority = depositor)]
+    pub depositor_lst_account: Account<'info, TokenAccount>,
 
     #[account(mut, mint::authority = mpsol_mint_authority)]
     pub mpsol_mint: Box<Account<'info, Mint>>,
@@ -84,7 +84,7 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
         ErrorCode::InvalidStoredLstPrice
     );
     // LST/SOL price must not be stale
-    check_price_not_stale(ctx.accounts.vault_state.token_sol_price_timestamp)?;
+    check_price_not_stale(ctx.accounts.vault_state.lst_sol_price_timestamp)?;
 
     // compute the sol value of deposited LSTs
     let deposited_sol_value =
@@ -107,8 +107,8 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
     // Transfer tokens to vault account
     {
         let transfer_instruction = Transfer {
-            from: ctx.accounts.depositor_token_account.to_account_info(),
-            to: ctx.accounts.vault_token_account.to_account_info(),
+            from: ctx.accounts.depositor_lst_account.to_account_info(),
+            to: ctx.accounts.vault_lst_account.to_account_info(),
             authority: ctx.accounts.depositor.to_account_info(),
         };
         let cpi_ctx = CpiContext::new(
@@ -157,10 +157,10 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
     emit!(crate::events::StakeEvent {
         main_state: ctx.accounts.main_state.key(),
         depositor: ctx.accounts.depositor.key(),
-        token_mint: ctx.accounts.token_mint.key(),
+        lst_mint: ctx.accounts.lst_mint.key(),
         lst_amount,
         deposited_sol_value,
-        depositor_lst_account: ctx.accounts.depositor_token_account.key(),
+        depositor_lst_account: ctx.accounts.depositor_lst_account.key(),
         depositor_mpsol_account: ctx.accounts.depositor_mpsol_account.key(),
         mpsol_received: mint_mpsol,
         deposit_fee,

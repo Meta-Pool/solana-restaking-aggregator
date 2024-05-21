@@ -19,13 +19,13 @@ pub struct ConfigureSecondaryVault<'info> {
 
     #[account(mint::decimals = 9)]
     // all mints must have 9 decimals, to simplify x/SOL price calculations
-    pub token_mint: Account<'info, Mint>,
+    pub lst_mint: Account<'info, Mint>,
 
     #[account(
         mut,
         seeds = [
             &main_state.key().to_bytes(),
-            &token_mint.key().to_bytes(),
+            &lst_mint.key().to_bytes(),
         ],
         bump
     )]
