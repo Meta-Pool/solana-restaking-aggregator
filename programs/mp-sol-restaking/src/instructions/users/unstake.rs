@@ -27,10 +27,10 @@ pub struct Unstake<'info> {
 }
 
 pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
-    // check mpsol_amount_to_burn > MIN_DEPOSIT_UNITS
+    // check mpsol_amount > MIN_MOVEMENT_LAMPORTS
     require_gte!(
         mpsol_amount,
-        MIN_DEPOSIT_UNITS,
+        MIN_MOVEMENT_LAMPORTS,
         ErrorCode::UnstakeAmountToSmall
     );
 

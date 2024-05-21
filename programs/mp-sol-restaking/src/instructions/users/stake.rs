@@ -1,5 +1,5 @@
 use crate::util::{
-    apply_bp, check_price_not_stale, lst_amount_to_sol_value, sol_value_to_mpsol_amount, TWO_POW_32,
+    check_price_not_stale, lst_amount_to_sol_value, sol_value_to_mpsol_amount, TWO_POW_32,
 };
 use crate::{constants::*, error::ErrorCode, MainVaultState, SecondaryVaultState};
 /// Stake any of the supported LST tokens
@@ -72,8 +72,8 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
         false,
         ErrorCode::DepositsInThisVaultAreDisabled
     );
-    // check amount > MIN_DEPOSIT_UNITS
-    require_gte!(lst_amount, MIN_DEPOSIT_UNITS, ErrorCode::DepositAmountToSmall);
+    // check amount > MIN_MOVEMENT_LAMPORTS
+    require_gte!(lst_amount, MIN_MOVEMENT_LAMPORTS, ErrorCode::DepositAmountToSmall);
 
     // check token_sol_price is in range and not stale
     // LST/SOL price must be > 1
@@ -88,10 +88,10 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
     // compute the sol value of deposited LSTs
     let deposited_sol_value =
         lst_amount_to_sol_value(lst_amount, ctx.accounts.vault_state.lst_sol_price_p32);
-    // check Sol-value > MIN_DEPOSIT_UNITS
+    // check Sol-value > MIN_MOVEMENT_LAMPORTS
     require_gte!(
         deposited_sol_value,
-        MIN_DEPOSIT_UNITS,
+        MIN_MOVEMENT_LAMPORTS,
         ErrorCode::DepositAmountToSmall
     );
 
@@ -121,11 +121,6 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
 
     ctx.accounts.vault_state.check_cap()?;
 
-    // discount deposit fee, to avoid attack vectors
-    let deposit_fee = apply_bp(mpsol_amount, ctx.accounts.main_state.deposit_fee_bp);
-    // deposit fee is not minted, so it slightly raises mpSOL price
-    let mint_mpsol = mpsol_amount - deposit_fee;
-
     // mint mpSOL for the user
     mint_to(
         CpiContext::new_with_signer(
@@ -141,7 +136,7 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
                 &[ctx.bumps.mpsol_mint_authority],
             ]],
         ),
-        mint_mpsol,
+        mpsol_amount,
     )?;
 
     // -------
@@ -150,7 +145,7 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
     // keep the total deposited sol value in vault_state
     ctx.accounts.vault_state.vault_total_sol_value += deposited_sol_value;
     // also the global sum for all vaults
-    // by adding to main_state.backing_sol_value, mpSOL price remains the same after the mint (+deposit_fee)
+    // by adding to main_state.backing_sol_value, mpSOL price remains the same after the mint
     ctx.accounts.main_state.backing_sol_value += deposited_sol_value;
 
     emit!(crate::events::StakeEvent {
@@ -161,11 +156,10 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
         deposited_sol_value,
         depositor_lst_account: ctx.accounts.depositor_lst_account.key(),
         depositor_mpsol_account: ctx.accounts.depositor_mpsol_account.key(),
-        mpsol_received: mint_mpsol,
-        deposit_fee,
+        mpsol_received: mpsol_amount,
         //--- mpSOL price components after the stake
         main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
-        mpsol_supply: ctx.accounts.mpsol_mint.supply + mint_mpsol,
+        mpsol_supply: ctx.accounts.mpsol_mint.supply + mpsol_amount,
     });
 
     Ok(())

@@ -31,9 +31,7 @@ pub struct MainVaultState {
     pub outstanding_tickets_sol_value: u64,
 
     // Config:
-    /// normally 0.1%
-    pub deposit_fee_bp: u16, 
-    /// normally 48, number of hours for a ticket to be due 
+    /// normally 48: number of hours for a ticket to be due 
     pub unstake_ticket_waiting_hours: u16, 
 
     #[max_len(MAX_WHITELISTED_VAULTS)]

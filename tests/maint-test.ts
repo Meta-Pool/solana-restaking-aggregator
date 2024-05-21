@@ -334,10 +334,8 @@ describe("mp-sol-restaking", () => {
       const solValueDeposited = amountMsolDeposited.mul(mSolSecondaryVaultState.lstSolPriceP32).div(new BN(TWO_POW_32));
       const correspondingMpSolAmount = preMpSolMintSupply.isZero() ? solValueDeposited :
         solValueDeposited.mul(preMpSolMintSupply).div(mainStatePre.backingSolValue);
-      // a deposit fee applies
-      const depositFeeMpSolAmount = correspondingMpSolAmount.mul(new BN(mainStatePre.depositFeeBp)).div(new BN("10000"));
       let mpSolReceived = new BN(await getTokenAccountBalance(provider, depositorMpSolAta));
-      expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.sub(depositFeeMpSolAmount).toString());
+      expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.toString());
 
       // check secondary vault state after stake
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
@@ -444,11 +442,9 @@ describe("mp-sol-restaking", () => {
         const solValueDeposited = amountJitoSolDeposited.mul(jitoSolSecondaryVaultState.lstSolPriceP32).div(new BN(TWO_POW_32));
         const correspondingMpSolAmount = preMpSolMintSupply.isZero() ? solValueDeposited :
           solValueDeposited.mul(preMpSolMintSupply).div(mainStatePre.backingSolValue);
-        // a deposit fee applies
-        const depositFeeMpSolAmount = correspondingMpSolAmount.mul(new BN(mainStatePre.depositFeeBp)).div(new BN("10000"));
         let postMpSolBalance = new BN(await getTokenAccountBalance(provider, depositorMpSolAta))
         let mpSolReceived = postMpSolBalance.sub(prevMpSolBalance);
-        expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.sub(depositFeeMpSolAmount).toString());
+        expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.toString());
 
         // check secondary vault state after stake
         const secondaryVaultState = await program.account.secondaryVaultState.fetch(jitoSolSecondaryVaultStateAddress);

@@ -42,7 +42,6 @@ pub fn handle_initialize(ctx: Context<Initialize>, operator_auth:Pubkey, strateg
         whitelisted_vaults: Vec::with_capacity(MAX_WHITELISTED_VAULTS as usize),
         backing_sol_value: 0,
         outstanding_tickets_sol_value: 0,
-        deposit_fee_bp: 10,
         unstake_ticket_waiting_hours: 48,
     });
     Ok(())
