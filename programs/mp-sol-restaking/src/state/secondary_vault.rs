@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 
 use crate::error::ErrorCode;
-use crate::util::sol_value_to_lst_amount;
+use crate::util::{lst_amount_to_sol_value, sol_value_to_lst_amount};
 
 // Secondary-vault State
 #[account]
@@ -11,8 +11,6 @@ use crate::util::sol_value_to_lst_amount;
 pub struct SecondaryVaultState {
     /// the LST type stored in this vault
     pub lst_mint: Pubkey,
-    /// locally_stored_amount ls tokens are stored here
-    pub vault_lst_account: Pubkey,
 
     /// LST-token/SOL price with 32-bit precision, cache of last computation of LST-token/SOL price,
     /// it is computed as `token_sol_price_p32 = LST-backing-lamports * 2^32 / LST-mint-supply`
@@ -23,21 +21,19 @@ pub struct SecondaryVaultState {
     /// last computation of token_sol_price, price is obtained ON-CHAIN, read from the LST token program state
     pub lst_sol_price_timestamp: u64,
 
-    /// SOL value of the entire vault, vault_total_token_amount * lst_token_sol_price
-    pub vault_total_sol_value: u64,
+    /// total lst amount backing this vault_total_sol_value 
+    /// To compute SOL value of the entire vault use: vault_total_lst_amount * lst_token_sol_price
+    /// invariant: vault_total_token_amount = in_strategies_amount + locally_stored_amount
+    pub vault_total_lst_amount: u64,
 
     /// token amount here (not in strategies)
-    /// invariant: vault_token_amount = in_strategies_amount + locally_stored_amount
-    /// invariant: vault_token_amount = vault_token_account.amount
+    /// invariant: vault_total_lst_amount = in_strategies_amount + locally_stored_amount
+    /// must eventually match vault_lst_ata (PDA ATA token account)
     pub locally_stored_amount: u64,
 
     /// token amount sent to strategies (belongs to this vault, part of assets, but not in vault_token_account)
-    /// invariant: vault_token_amount = in_strategies_amount + locally_stored_amount
+    /// invariant: vault_total_lst_amount = in_strategies_amount + locally_stored_amount
     pub in_strategies_amount: u64,
-
-    /// total token amount backing the vault_total_sol_value of this vault
-    /// invariant: vault_total_token_amount = in_strategies_amount + locally_stored_amount
-    pub vault_total_lst_amount: u64,
 
     /// "tickets_target_sol_amount" is set by the ticket-fulfiller crank, so this vault removes tokens from strategies
     /// increasing "locally_stored_amount" until it covers "tickets_target_sol_amount"
@@ -53,6 +49,11 @@ pub struct SecondaryVaultState {
 }
 
 impl SecondaryVaultState {
+
+    pub fn vault_total_sol_value(&self) -> u64 {
+        lst_amount_to_sol_value(self.vault_total_lst_amount, self.lst_sol_price_p32)
+    }
+
     pub fn available_for_strategies_amount(&self) -> u64 {
         self.locally_stored_amount
             .saturating_sub(sol_value_to_lst_amount(
@@ -73,7 +74,7 @@ impl SecondaryVaultState {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.vault_total_sol_value == 0
+        self.vault_total_lst_amount == 0
             && self.locally_stored_amount == 0
             && self.in_strategies_amount == 0
             && self.tickets_target_sol_amount == 0

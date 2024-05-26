@@ -1,5 +1,6 @@
+use crate::internal_update_vault_token_sol_price;
 use crate::util::{
-    check_price_not_stale, lst_amount_to_sol_value, sol_value_to_mpsol_amount, TWO_POW_32,
+    lst_amount_to_sol_value, sol_value_to_mpsol_amount, TWO_POW_32,
 };
 use crate::{constants::*, error::ErrorCode, MainVaultState, SecondaryVaultState};
 /// Stake any of the supported LST tokens
@@ -17,7 +18,7 @@ pub struct Stake<'info> {
     #[account()]
     pub lst_mint: Box<Account<'info, Mint>>,
 
-    #[account(mut, has_one=lst_mint, has_one=vault_lst_account,
+    #[account(mut, has_one=lst_mint,
         seeds = [
             &main_state.key().to_bytes(),
             &lst_mint.key().to_bytes(),
@@ -72,8 +73,6 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
         false,
         ErrorCode::DepositsInThisVaultAreDisabled
     );
-    // check amount > MIN_MOVEMENT_LAMPORTS
-    require_gte!(lst_amount, MIN_MOVEMENT_LAMPORTS, ErrorCode::DepositAmountToSmall);
 
     // check token_sol_price is in range and not stale
     // LST/SOL price must be > 1
@@ -82,10 +81,15 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
         TWO_POW_32,
         ErrorCode::InvalidStoredLstPrice
     );
-    // LST/SOL price must not be stale
-    check_price_not_stale(ctx.accounts.vault_state.lst_sol_price_timestamp)?;
+    
+    // we need the LST/SOL price to be updated
+    // update LST/SOL price now
+    internal_update_vault_token_sol_price(
+        &mut ctx.accounts.main_state, 
+        &mut ctx.accounts.vault_state, 
+        if ctx.remaining_accounts.len() >= 1 {Some(ctx.remaining_accounts[0].to_account_info())} else {None})?;
 
-    // compute the sol value of deposited LSTs
+    // compute the sol value of deposited lst_amount
     let deposited_sol_value =
         lst_amount_to_sol_value(lst_amount, ctx.accounts.vault_state.lst_sol_price_p32);
     // check Sol-value > MIN_MOVEMENT_LAMPORTS
@@ -116,7 +120,9 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
         );
         anchor_spl::token::transfer(cpi_ctx, lst_amount)?;
     }
-    // the tokens are added to locally stored amount
+    // the tokens are added to the vault total
+    ctx.accounts.vault_state.vault_total_lst_amount += lst_amount;
+    // and computed as locally stored amount
     ctx.accounts.vault_state.locally_stored_amount += lst_amount;
 
     ctx.accounts.vault_state.check_cap()?;
@@ -140,11 +146,8 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
     )?;
 
     // -------
-    // keep contract internal accounting
+    // keep main-state internal accounting
     // -------
-    // keep the total deposited sol value in vault_state
-    ctx.accounts.vault_state.vault_total_sol_value += deposited_sol_value;
-    // also the global sum for all vaults
     // by adding to main_state.backing_sol_value, mpSOL price remains the same after the mint
     ctx.accounts.main_state.backing_sol_value += deposited_sol_value;
 

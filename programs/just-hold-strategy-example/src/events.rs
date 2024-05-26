@@ -38,28 +38,6 @@ pub struct UpdateVaultTokenSolPriceEvent {
     pub old_sol_value: u64,
     pub new_price_p32: u64,
     pub new_sol_value: u64,
+    pub vault_total_sol_value: u64,
     pub main_vault_backing_sol_value: u64,
-}
-
-#[event]
-pub struct UpdateAttachedStratLstAmountEvent {
-    pub main_state: Pubkey,
-    pub lst_mint: Pubkey,
-    pub vault_strategy_relation_entry: Pubkey,
-    pub old_lst_amount: u64,
-    pub new_lst_amount: u64,
-    pub lst_price_p32: u64,
-    pub main_vault_backing_sol_value: u64,
-}
-
-#[event]
-pub struct TicketClaimEvent {
-    pub main_state: Pubkey,
-    pub lst_mint: Pubkey,
-    pub ticket_account: Pubkey,
-    pub beneficiary: Pubkey,
-    pub claimed_sol_value: u64,
-    pub ticket_sol_value_remaining: u64,
-    pub lst_amount_delivered: u64,
-    pub ticket_due_timestamp: u64,
 }

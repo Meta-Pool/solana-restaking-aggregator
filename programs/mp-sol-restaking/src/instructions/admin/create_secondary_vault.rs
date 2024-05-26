@@ -58,11 +58,9 @@ pub struct CreateSecondaryVault<'info> {
 pub fn handle_create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Result<()> {
     ctx.accounts.vault_state.set_inner(SecondaryVaultState {
         lst_mint: ctx.accounts.lst_mint.key(),
-        vault_lst_account: ctx.accounts.vault_lst_account.key(),
         vault_total_lst_amount: 0,
         lst_sol_price_p32 : 0,
         lst_sol_price_timestamp : 0,
-        vault_total_sol_value : 0,
         in_strategies_amount : 0,
         locally_stored_amount : 0,
         tickets_target_sol_amount : 0,

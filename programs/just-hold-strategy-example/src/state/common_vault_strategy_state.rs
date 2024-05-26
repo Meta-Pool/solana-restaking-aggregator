@@ -1,19 +1,19 @@
 use anchor_lang::prelude::*;
 
-// EXTERNAL state, belonging to strategy-programs
 // Note for V2: Dual-LST strategies:
 // A dual-token strategy-program must create 2 CommonVaultStrategyStates
 // one for each token, and attach each CommonVaultStrategyState to the specific token vault
+#[derive(InitSpace)]
 #[account]
 pub struct CommonVaultStrategyState {
 
     pub lst_mint: Pubkey,
 
-    // total lst in this strategy
-    // incremented when receiving tokens from the vault
-    // incremented when rewards are acquired
-    // decremented when slashed
-    // decremented when sending tokens to the vault
+    /// total lst in this strategy
+    /// incremented when receiving tokens from the vault
+    /// incremented when rewards are acquired
+    /// decremented when slashed
+    /// decremented when sending tokens to the vault
     /// invariant: vault_total_token_amount = in_external_program_amount + locally_stored_amount
     pub strat_total_lst_amount: u64,
 

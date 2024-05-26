@@ -63,7 +63,7 @@ pub fn apply_bp(amount: u64, bp: u16) -> u64 {
     mul_div(amount, bp as u64, BASIS_POINTS_100_PERCENT as u64)
 }
 
-fn check_price_not_stale_seconds(
+pub fn check_price_not_stale_seconds(
     token_sol_price_timestamp: u64,
     max_seconds_allowed: u64,
 ) -> Result<()> {

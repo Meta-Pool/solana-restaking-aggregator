@@ -5,8 +5,9 @@ use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
-/// Unstake, creating an Unstake-ticket with a SOL-value, that when due, can be exchanged for any of the available LST tokens
-/// burn some mpSOL and get an unstake-ticket for the SOL-value of mpSOL burned
+/// Unstake: burn mpSOL and get an unstake-ticket for the SOL-value of the mpSOL burned
+/// This instruction creates an Unstake-ticket with a SOL-value, that when due, 
+/// can be exchanged for any of the available LST tokens, for the specified SOL-value
 pub struct Unstake<'info> {
     #[account(mut, has_one = mpsol_mint)]
     pub main_state: Account<'info, MainVaultState>,
@@ -40,7 +41,6 @@ pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
         ctx.accounts.main_state.backing_sol_value,
         ctx.accounts.mpsol_mint.supply,
     );
-
 
     // -------
     // burn the mpSOL and keep contract internal accounting

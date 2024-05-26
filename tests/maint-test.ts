@@ -11,6 +11,7 @@ import { Marinade, MarinadeConfig, Provider } from '@marinade.finance/marinade-t
 import { expect } from 'chai';
 import { BN } from "bn.js";
 import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens } from "./util/spl-token-mint-helpers";
+import { findStakeProgramAddress } from "@solana/spl-stake-pool/dist/utils";
 
 const ONE_E9: string = 1e9.toFixed()
 const TWO_POW_32: string = (2 ** 32).toFixed()
@@ -63,15 +64,16 @@ function formatPrice32p(priceString32p: string) {
   return `${with9DecimalPlaces.slice(0, -9)}.${with9DecimalPlaces.slice(-9)}`
 }
 
-async function airdropLamports(provider:Provider, pubkey: PublicKey, amountSol: number = 10){
-    // airdrop some test lamports
-    const latestBlockHash = await provider.connection.getLatestBlockhash();      
-    let token_airdrop_tx_hash = await provider.connection.requestAirdrop(pubkey, amountSol * 1e9);
-    await provider.connection.confirmTransaction({
-      blockhash: latestBlockHash.blockhash,
-      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-      signature:token_airdrop_tx_hash, }
-    );
+async function airdropLamports(provider: Provider, pubkey: PublicKey, amountSol: number = 10) {
+  // airdrop some test lamports
+  const latestBlockHash = await provider.connection.getLatestBlockhash();
+  let token_airdrop_tx_hash = await provider.connection.requestAirdrop(pubkey, amountSol * 1e9);
+  await provider.connection.confirmTransaction({
+    blockhash: latestBlockHash.blockhash,
+    lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+    signature: token_airdrop_tx_hash,
+  }
+  );
 }
 //-------------------------------
 /// returns vault state address
@@ -118,9 +120,7 @@ async function testCreateSecondaryVault(tokenName: string, lstMint: string): Pro
     expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql("0");
     expect(secondaryVaultState.lstMint).to.eql(lstMintPublickey);
     expect(secondaryVaultState.lstSolPriceP32.toString()).to.eql("0");
-    expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql("0");
     expect(secondaryVaultState.ticketsTargetSolAmount.toString()).to.eql("0");
-    expect(secondaryVaultState.vaultLstAccount).to.eql(vaultTokenAccountAddress);
     expect(secondaryVaultState.vaultTotalLstAmount.toString()).to.eql("0");
   }
 
@@ -271,17 +271,28 @@ describe("mp-sol-restaking", () => {
 
       // create ix to deposit the mSOL in the vault
       let amountMsolDeposited = new BN(1e12.toFixed())
+      const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
+        [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
+        , program.programId);
+      const vaultMsolAta = await getAssociatedTokenAddressSync(
+        new PublicKey(MARINADE_MSOL_MINT), vaultAtaAuth, true);
       let stakeTx = await program.methods
         .stake(amountMsolDeposited)
         .accounts({
           mainState: mainStateKeyPair.publicKey,
           lstMint: new PublicKey(MARINADE_MSOL_MINT),
+          vaultLstAccount: vaultMsolAta,
           vaultState: marinadeSecondaryVaultStateAddress,
           depositor: depositorUserKeyPair.publicKey,
           depositorLstAccount: depositorAtaMsol,
           mpsolMint: mpsolTokenMintKeyPair.publicKey,
           depositorMpsolAccount: depositorMpSolAta,
         })
+        .remainingAccounts(
+          [{
+            pubkey: new PublicKey(MARINADE_STATE_ADDRESS), isSigner: false, isWritable: false
+          }]);
+
       //console.log(stakeTx)
 
       // -------------------
@@ -293,7 +304,7 @@ describe("mp-sol-restaking", () => {
         expect(false, "stakeTx.rpc() should throw");
       }
       catch (ex) {
-        //console.log("simulate throw ex:", ex)
+        // console.log("simulate throw ex:", ex)
         expect(JSON.stringify(ex)).to.contain("DepositsInThisVaultAreDisabled")
       }
 
@@ -308,7 +319,7 @@ describe("mp-sol-restaking", () => {
           .rpc()
       }
 
-      // uncomment to show tx simulation program log
+      // // uncomment to show tx simulation program log
       // {
       //   console.log("stakeTx.simulate() -- no signers")
       //   try {
@@ -339,7 +350,7 @@ describe("mp-sol-restaking", () => {
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
       expect(secondaryVaultState.depositsDisabled).to.eql(false);
       expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql(amountMsolDeposited.toString());
-      expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql(solValueDeposited.toString());
+      expect(secondaryVaultState.vaultTotalLstAmount.toString()).to.eql(amountMsolDeposited.toString());
 
       // check main state after
       const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
@@ -404,6 +415,12 @@ describe("mp-sol-restaking", () => {
             .rpc()
         }
 
+        const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
+          [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
+          , program.programId);
+        const vaultJitoSolAta = await getAssociatedTokenAddressSync(
+          new PublicKey(JITO_SOL_TOKEN_MINT), vaultAtaAuth, true);
+  
         let amountJitoSolDeposited = new BN(1e11.toFixed())
         let stakeTx = await program.methods
           .stake(amountJitoSolDeposited)
@@ -411,12 +428,17 @@ describe("mp-sol-restaking", () => {
             mainState: mainStateKeyPair.publicKey,
             lstMint: new PublicKey(JITO_SOL_TOKEN_MINT),
             vaultState: jitoSolSecondaryVaultStateAddress,
+            vaultLstAccount: vaultJitoSolAta,
             depositor: depositorUserKeyPair.publicKey,
             depositorLstAccount: depositorAtaJitoSol,
             mpsolMint: mpsolTokenMintKeyPair.publicKey,
             depositorMpsolAccount: depositorMpSolAta,
           })
-
+          .remainingAccounts(
+            [{
+              pubkey: new PublicKey(JITO_SOL_SPL_STAKE_POOL_STATE_ADDRESS), isSigner: false, isWritable: false
+            }]);
+  
         // uncomment to show tx simulation program log
         // {
         //   console.log("stakeTx.simulate() -- no signers")
@@ -448,7 +470,7 @@ describe("mp-sol-restaking", () => {
         const secondaryVaultState = await program.account.secondaryVaultState.fetch(jitoSolSecondaryVaultStateAddress);
         expect(secondaryVaultState.depositsDisabled).to.eql(false);
         expect(secondaryVaultState.locallyStoredAmount.toString()).to.eql(amountJitoSolDeposited.toString());
-        expect(secondaryVaultState.vaultTotalSolValue.toString()).to.eql(solValueDeposited.toString());
+        expect(secondaryVaultState.vaultTotalLstAmount.toString()).to.eql(amountJitoSolDeposited.toString());
 
         // check main state after
         const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
@@ -508,7 +530,7 @@ describe("mp-sol-restaking", () => {
       }
 
       // check after unstake
-      
+
       // check ticket AccountInfo
       const ticketAccountInfo = await provider.connection.getAccountInfo(newTicketAccount.publicKey);
       expect(ticketAccountInfo.owner.toBase58()).to.be.eq(program.programId.toBase58())
@@ -516,9 +538,9 @@ describe("mp-sol-restaking", () => {
       const ticket = await program.account.unstakeTicket.fetch(newTicketAccount.publicKey);
       expect(ticket.beneficiary.toBase58()).to.be.eq(depositorUserKeyPair.publicKey.toBase58());
       expect(ticket.mainState.toBase58()).to.be.eq(mainStateKeyPair.publicKey.toBase58());
-      const expectedDueDate = new Date().getTime()/1000 + 48*60*60
-      expect(ticket.ticketDueTimestamp.toNumber()).to.be.greaterThan(expectedDueDate-10).and.lessThan(expectedDueDate+10);
-      
+      const expectedDueDate = new Date().getTime() / 1000 + 48 * 60 * 60
+      expect(ticket.ticketDueTimestamp.toNumber()).to.be.greaterThan(expectedDueDate - 10).and.lessThan(expectedDueDate + 10);
+
       // check main state after
       const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
       expect(mainStatePre.backingSolValue.sub(ticket.ticketSolValue).toString()).to.eql(mainStateAfter.backingSolValue.toString());

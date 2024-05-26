@@ -1146,6 +1146,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "just-hold-strategy-example"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "borsh 0.9.3",
+ "solana-program",
+]
+
+[[package]]
 name = "keccak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

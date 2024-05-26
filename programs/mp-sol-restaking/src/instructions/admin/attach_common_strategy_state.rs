@@ -1,8 +1,10 @@
-use crate::state::MainVaultState;
-use crate::{CommonVaultStrategyState, SecondaryVaultState, VaultStrategyRelationEntry};
+use crate::{
+    state::external::common_vault_strategy_state::CommonVaultStrategyState,
+    state::{MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry},
+};
 use anchor_lang::prelude::*;
 
-/// Note: Before adding a strategy 
+/// Note: Before adding a strategy
 /// THE CONTRACT CODE OF THE STRAT HAS TO BE VERIFIED
 /// it is important to ensure that the STRAT code is valid
 /// with full backing and permissionless unstake
@@ -51,15 +53,17 @@ pub struct AttachCommonStrategyState<'info> {
 }
 
 pub fn handle_attach_common_strategy_state(ctx: Context<AttachCommonStrategyState>) -> Result<()> {
-    ctx.accounts.vault_strategy_relation_entry.set_inner(VaultStrategyRelationEntry {
-        main_state: ctx.accounts.main_state.key(),
-        lst_mint: ctx.accounts.lst_mint.key(),
-        common_strategy_state: ctx.accounts.common_strategy_state.key(),
-        strategy_program_code: ctx.accounts.strategy_program_code.key(),
-        lst_amount_target : 0,
-        tickets_target_sol_amount : 0,
-        last_read_strat_lst_amount: 0,
-        last_read_strat_lst_timestamp : 0,
-    });
+    ctx.accounts
+        .vault_strategy_relation_entry
+        .set_inner(VaultStrategyRelationEntry {
+            main_state: ctx.accounts.main_state.key(),
+            lst_mint: ctx.accounts.lst_mint.key(),
+            common_strategy_state: ctx.accounts.common_strategy_state.key(),
+            strategy_program_code: ctx.accounts.strategy_program_code.key(),
+            lst_amount_target: 0,
+            tickets_target_sol_amount: 0,
+            last_read_strat_lst_amount: 0,
+            last_read_strat_lst_timestamp: 0,
+        });
     Ok(())
 }

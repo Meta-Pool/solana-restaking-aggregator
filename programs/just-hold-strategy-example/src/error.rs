@@ -47,23 +47,4 @@ pub enum ErrorCode {
 
     #[msg("Unstake amount too small")]
     UnstakeAmountToSmall, 
-
-    #[msg("Not enough SOL value in ticket ")]
-    NotEnoughSolValueInTicket,
-
-    #[msg("Withdraw amount too small")]
-    WithdrawAmountToSmall, 
-
-    #[msg("Ticket is not due yet")]
-    TicketIsNotDueYet,
-
-    #[msg("Not Enough Lst in Vault")]
-    NotEnoughLstInVault,
-
-    #[msg("Vault Ticket Target is Lower Than Sol Value to Withdraw")]
-    VaultTicketTargetIsLowerThanSolValueToWithdraw,
-
-    #[msg("Missing Lst State in Remaining Accounts")]
-    MissingLstStateInRemainingAccounts,
 }
-
