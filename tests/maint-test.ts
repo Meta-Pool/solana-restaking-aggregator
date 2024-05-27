@@ -11,7 +11,8 @@ import { Marinade, MarinadeConfig, Provider } from '@marinade.finance/marinade-t
 import { expect } from 'chai';
 import { BN } from "bn.js";
 import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens } from "./util/spl-token-mint-helpers";
-import { findStakeProgramAddress } from "@solana/spl-stake-pool/dist/utils";
+import { MethodsBuilder } from "@coral-xyz/anchor/dist/cjs/program/namespace/methods";
+import { AllInstructions } from "@coral-xyz/anchor/dist/cjs/program/namespace/types";
 
 const ONE_E9: string = 1e9.toFixed()
 const TWO_POW_32: string = (2 ** 32).toFixed()
@@ -75,6 +76,7 @@ async function airdropLamports(provider: Provider, pubkey: PublicKey, amountSol:
   }
   );
 }
+
 //-------------------------------
 /// returns vault state address
 async function testCreateSecondaryVault(tokenName: string, lstMint: string): Promise<PublicKey> {
@@ -139,6 +141,78 @@ function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string) {
     })
     .remainingAccounts([])
 }
+
+//-------------------------
+// creates a unstake ticket
+async function testCreate1e10UnstakeTicket(depositorMpSolAta: PublicKey, expectWaitHours: number): Promise<Keypair> {
+  // remember main state
+  const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+  const preMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+
+  // give some lamports to depositor to pay for the ticket-account
+  await airdropLamports(provider, depositorUserKeyPair.publicKey);
+
+  // account to store the unstake-ticket
+  let newTicketKeyPair = new Keypair()
+
+  // create ix to deposit the mSOL in the vault
+  let amountMpsolUnstaked = new BN(1e10.toFixed())
+  let unstakeTx = program.methods
+    .unstake(amountMpsolUnstaked)
+    .accounts({
+      mainState: mainStateKeyPair.publicKey,
+      unstaker: depositorUserKeyPair.publicKey,
+      mpsolMint: mpsolTokenMintKeyPair.publicKey,
+      unstakerMpsolAccount: depositorMpSolAta,
+      newTicketAccount: newTicketKeyPair.publicKey,
+    })
+
+  // uncomment to show tx simulation program log
+  // {
+  //   console.log("stakeTx.simulate() -- no signers")
+  //   try {
+  //     let result = await unstakeTx.simulate()
+  //     console.log(result)
+  //   }
+  // catch (ex)   {
+  //     console.log("exception",ex)
+  //   }
+  // }
+
+  {
+    console.log("unstakeTx.signers().rpc()")
+    let result = await unstakeTx
+      .signers([depositorUserKeyPair, newTicketKeyPair])
+      .rpc()
+  }
+
+  // check after unstake
+
+  // check ticket AccountInfo
+  const ticketAccountInfo = await provider.connection.getAccountInfo(newTicketKeyPair.publicKey);
+  expect(ticketAccountInfo.owner.toBase58()).to.be.eq(program.programId.toBase58())
+  // check ticket AccountData
+  const ticket = await program.account.unstakeTicket.fetch(newTicketKeyPair.publicKey);
+  expect(ticket.beneficiary.toBase58()).to.be.eq(depositorUserKeyPair.publicKey.toBase58());
+  expect(ticket.mainState.toBase58()).to.be.eq(mainStateKeyPair.publicKey.toBase58());
+  const nowTimestamp = new Date().getTime() / 1000
+  // console.log("nowTimestamp",nowTimestamp, "expectWaitHours",expectWaitHours)
+  // console.log("ticket.ticketDueTimestamp", ticket.ticketDueTimestamp.toNumber())
+  const expectedDueDate = nowTimestamp + expectWaitHours * 60 * 60
+  expect(ticket.ticketDueTimestamp.toNumber()).to.be.greaterThan(expectedDueDate - 10).and.lessThan(expectedDueDate + 10);
+
+  // check main state after
+  const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+  expect(mainStatePre.backingSolValue.sub(ticket.ticketSolValue).toString()).to.eql(mainStateAfter.backingSolValue.toString());
+
+  // check mpSOL mint after
+  const postMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+  expect(preMpSolMintSupply.sub(amountMpsolUnstaked).toString()).to.eql(postMpSolMintSupply.toString());
+
+  // test ticket claim
+  return newTicketKeyPair
+}
+
 
 
 // ------------------------------
@@ -220,7 +294,16 @@ describe("mp-sol-restaking", () => {
     let depositorAtaJitoSol = await mintTokens(provider, wallet, new PublicKey(JITO_SOL_TOKEN_MINT), depositorUserKeyPair.publicKey, 1e12)
     // ------------------------------
 
+    // create needed accounts
     let depositorMpSolAta = await createAta(provider, wallet, mpsolTokenMintKeyPair.publicKey, depositorUserKeyPair.publicKey)
+
+    // compute PDAs
+    const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
+      [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
+      , program.programId);
+
+    const vaultMsolAta = await getAssociatedTokenAddressSync(
+      new PublicKey(MARINADE_MSOL_MINT), vaultAtaAuth, true);
 
     // ------------------------------
     // create Marinade mSol secondary vault
@@ -271,11 +354,6 @@ describe("mp-sol-restaking", () => {
 
       // create ix to deposit the mSOL in the vault
       let amountMsolDeposited = new BN(1e12.toFixed())
-      const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
-        [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
-        , program.programId);
-      const vaultMsolAta = await getAssociatedTokenAddressSync(
-        new PublicKey(MARINADE_MSOL_MINT), vaultAtaAuth, true);
       let stakeTx = await program.methods
         .stake(amountMsolDeposited)
         .accounts({
@@ -415,12 +493,9 @@ describe("mp-sol-restaking", () => {
             .rpc()
         }
 
-        const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
-          [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
-          , program.programId);
         const vaultJitoSolAta = await getAssociatedTokenAddressSync(
           new PublicKey(JITO_SOL_TOKEN_MINT), vaultAtaAuth, true);
-  
+
         let amountJitoSolDeposited = new BN(1e11.toFixed())
         let stakeTx = await program.methods
           .stake(amountJitoSolDeposited)
@@ -438,7 +513,7 @@ describe("mp-sol-restaking", () => {
             [{
               pubkey: new PublicKey(JITO_SOL_SPL_STAKE_POOL_STATE_ADDRESS), isSigner: false, isWritable: false
             }]);
-  
+
         // uncomment to show tx simulation program log
         // {
         //   console.log("stakeTx.simulate() -- no signers")
@@ -482,74 +557,195 @@ describe("mp-sol-restaking", () => {
 
       }
 
-
-
     }
 
-    // test unstake
     {
-      // remember main state
-      const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
-      const preMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+      // test unstake, with the default 48hs wait time
+      let newTicketAccount1 = await testCreate1e10UnstakeTicket(depositorMpSolAta, 48);
+    }
 
-      // give some lamports to depositor to pay for the ticket-account
-      await airdropLamports(provider, depositorUserKeyPair.publicKey);
-
-      // account to store the unstake-ticket
-      let newTicketAccount = new Keypair()
-
-      // create ix to deposit the mSOL in the vault
-      let amountMpsolUnstaked = new BN(1e10.toFixed())
-      let unstakeTx = await program.methods
-        .unstake(amountMpsolUnstaked)
-        .accounts({
-          mainState: mainStateKeyPair.publicKey,
-          unstaker: depositorUserKeyPair.publicKey,
-          mpsolMint: mpsolTokenMintKeyPair.publicKey,
-          unstakerMpsolAccount: depositorMpSolAta,
-          newTicketAccount: newTicketAccount.publicKey,
-        })
-
-      // uncomment to show tx simulation program log
-      // {
-      //   console.log("stakeTx.simulate() -- no signers")
-      //   try {
-      //     let result = await unstakeTx.simulate()
-      //     console.log(result)
-      //   }
-      // catch (ex)   {
-      //     console.log("exception",ex)
-      //   }
-      // }
-
+    // test unstake & claim
+    {
+      // config for 0hs waiting time
       {
-        console.log("unstakeTx.signers().rpc()")
-        let result = await unstakeTx
-          .signers([depositorUserKeyPair, newTicketAccount])
+        console.log("config, 0hs wait time")
+        let configTx = await program.methods.configureMainVault({ unstakeTicketWaitingHours: 0 })
+          .accounts({
+            admin: wallet.publicKey,
+            mainState: mainStateKeyPair.publicKey,
+          })
+
+        // // uncomment to show tx simulation program log
+        // {
+        //   console.log("configureMainVault.simulate()")
+        //   try {
+        //     let result = await configTx.simulate()
+        //     console.log(result)
+        //   }
+        //   catch (ex) {
+        //     console.log(ex)
+        //   }
+        // }
+
+        // execute
+        await configTx.rpc()
+      }
+      // create the ticket
+      const newTicketAccount2 = await testCreate1e10UnstakeTicket(depositorMpSolAta, 0);
+      const amountSolTicket = new BN(1e10.toFixed())
+
+
+      // claim 1/3
+      {
+        // remember pre data before claim
+        const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+        // console.log("mainStatePre.outstandingTicketsSolValue",mainStatePre.outstandingTicketsSolValue.toString());
+        expect(mainStatePre.unstakeTicketWaitingHours).to.be.eq(0);
+        const userMsolAccountBalancePre = await getTokenAccountBalance(provider, depositorAtaMsol);
+        const mSolSecondaryVaultStatePre = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress)
+        const ticketAccountPre = await program.account.unstakeTicket.fetch(newTicketAccount2.publicKey);
+
+        let amountSolClaimed = amountSolTicket.div(new BN(3))
+        console.log("ticket claim 1/3", amountSolClaimed.toString())
+        let claimTx = await program.methods.ticketClaim(amountSolClaimed)
+          .accounts({
+            mainState: mainStateKeyPair.publicKey,
+            beneficiary: depositorUserKeyPair.publicKey,
+            ticketAccount: newTicketAccount2.publicKey,
+            lstMint: new PublicKey(MARINADE_MSOL_MINT),
+            beneficiaryLstAccount: depositorAtaMsol,
+            vaultLstAccount: vaultMsolAta
+          })
+          .remainingAccounts([{
+            pubkey: new PublicKey(MARINADE_STATE_ADDRESS), isSigner: false, isWritable: false
+          }])
+
+        // // uncomment to show tx simulation program log
+        // {
+        //   console.log("simulate()")
+        //   try {
+        //     let result = await claimTx.simulate()
+        //     console.log(result)
+        //   }
+        //   catch (ex) {
+        //     console.log(ex)
+        //   }
+        // }
+
+        // execute 
+        await claimTx
+          .signers([depositorUserKeyPair])
           .rpc()
+
+        // check received mSOL amount
+        let userMsolAccountBalancePost = await getTokenAccountBalance(provider, depositorAtaMsol);
+        let amountMsolReceived = new BN(userMsolAccountBalancePost).sub(new BN(userMsolAccountBalancePre))
+        // compute sol-value received
+        const computedSolValueReceived = amountMsolReceived.mul(mSolSecondaryVaultStatePre.lstSolPriceP32).div(new BN(TWO_POW_32));
+        console.log("computedSolValueReceived", computedSolValueReceived.toString())
+        // allow for 1 lamport difference
+        expect(amountSolClaimed.toNumber()).to.be.greaterThan(computedSolValueReceived.subn(1).toNumber())
+          .and.to.be.lessThanOrEqual(computedSolValueReceived.addn(1).toNumber());
+
+        // check secondary vault state after claim
+        const secondaryVaultStatePost = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
+        expect(secondaryVaultStatePost.locallyStoredAmount.toString())
+          .to.eql(mSolSecondaryVaultStatePre.locallyStoredAmount.sub(amountMsolReceived).toString());
+        expect(secondaryVaultStatePost.vaultTotalLstAmount.toString())
+          .to.eql(mSolSecondaryVaultStatePre.vaultTotalLstAmount.sub(amountMsolReceived).toString());
+        if (secondaryVaultStatePost.ticketsTargetSolAmount.toNumber() > 0) {
+          expect(secondaryVaultStatePost.ticketsTargetSolAmount.toString())
+            .to.be.eq(mSolSecondaryVaultStatePre.ticketsTargetSolAmount.sub(computedSolValueReceived).toString());
+        }
+
+        // check main state after
+        const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+        // console.log("mainStateAfter.outstandingTicketsSolValue",mainStateAfter.outstandingTicketsSolValue.toString());
+        expect(mainStateAfter.outstandingTicketsSolValue.toString())
+          .to.eql(mainStatePre.outstandingTicketsSolValue.sub(amountSolClaimed).toString());
+
+        // check ticket account after
+        const ticketAccountAfter = await program.account.unstakeTicket.fetch(newTicketAccount2.publicKey);
+        expect(ticketAccountAfter.ticketSolValue.toString())
+          .to.eql(ticketAccountPre.ticketSolValue.sub(amountSolClaimed).toString());
       }
 
-      // check after unstake
+      // claim the rest
+      {
+        // remember pre data before claim
+        const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+        const userMsolAccountBalancePre = await getTokenAccountBalance(provider, depositorAtaMsol);
+        const mSolSecondaryVaultStatePre = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress)
+        const ticketAccountPre = await program.account.unstakeTicket.fetch(newTicketAccount2.publicKey);
 
-      // check ticket AccountInfo
-      const ticketAccountInfo = await provider.connection.getAccountInfo(newTicketAccount.publicKey);
-      expect(ticketAccountInfo.owner.toBase58()).to.be.eq(program.programId.toBase58())
-      // check ticket AccountData
-      const ticket = await program.account.unstakeTicket.fetch(newTicketAccount.publicKey);
-      expect(ticket.beneficiary.toBase58()).to.be.eq(depositorUserKeyPair.publicKey.toBase58());
-      expect(ticket.mainState.toBase58()).to.be.eq(mainStateKeyPair.publicKey.toBase58());
-      const expectedDueDate = new Date().getTime() / 1000 + 48 * 60 * 60
-      expect(ticket.ticketDueTimestamp.toNumber()).to.be.greaterThan(expectedDueDate - 10).and.lessThan(expectedDueDate + 10);
+        let amountSolClaimed = amountSolTicket.sub(amountSolTicket.div(new BN(3)))
+        console.log("ticket claim rest", amountSolClaimed.toString())
+        let claimTx = await program.methods.ticketClaim(amountSolClaimed)
+          .accounts({
+            mainState: mainStateKeyPair.publicKey,
+            beneficiary: depositorUserKeyPair.publicKey,
+            ticketAccount: newTicketAccount2.publicKey,
+            lstMint: new PublicKey(MARINADE_MSOL_MINT),
+            beneficiaryLstAccount: depositorAtaMsol,
+            vaultLstAccount: vaultMsolAta
+          })
+          .remainingAccounts([{
+            pubkey: new PublicKey(MARINADE_STATE_ADDRESS), isSigner: false, isWritable: false
+          }])
 
-      // check main state after
-      const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
-      expect(mainStatePre.backingSolValue.sub(ticket.ticketSolValue).toString()).to.eql(mainStateAfter.backingSolValue.toString());
+        // // uncomment to show tx simulation program log
+        // {
+        //   console.log("simulate()")
+        //   try {
+        //     let result = await claimTx.simulate()
+        //     console.log(result)
+        //   }
+        //   catch (ex) {
+        //     console.log(ex)
+        //   }
+        // }
 
-      // check mpSOL mint after
-      const postMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
-      expect(preMpSolMintSupply.sub(amountMpsolUnstaked).toString()).to.eql(postMpSolMintSupply.toString());
+        // execute 
+        await claimTx
+          .signers([depositorUserKeyPair])
+          .rpc()
+
+        // check received mSOL amount
+        let userMsolAccountBalancePost = await getTokenAccountBalance(provider, depositorAtaMsol);
+        let amountMsolReceived = new BN(userMsolAccountBalancePost).sub(new BN(userMsolAccountBalancePre))
+        // compute sol-value received
+        const computedSolValueReceived = amountMsolReceived.mul(mSolSecondaryVaultStatePre.lstSolPriceP32).div(new BN(TWO_POW_32));
+        console.log("computedSolValueReceived", computedSolValueReceived.toString())
+        // allow for 1 lamport difference
+        expect(amountSolClaimed.toNumber()).to.be.greaterThan(computedSolValueReceived.subn(1).toNumber())
+          .and.to.be.lessThanOrEqual(computedSolValueReceived.addn(1).toNumber());
+
+        // check secondary vault state after claim
+        const secondaryVaultStatePost = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
+        expect(secondaryVaultStatePost.locallyStoredAmount.toString())
+          .to.eql(mSolSecondaryVaultStatePre.locallyStoredAmount.sub(amountMsolReceived).toString());
+        expect(secondaryVaultStatePost.vaultTotalLstAmount.toString())
+          .to.eql(mSolSecondaryVaultStatePre.vaultTotalLstAmount.sub(amountMsolReceived).toString());
+        if (secondaryVaultStatePost.ticketsTargetSolAmount.toNumber() > 0) {
+          expect(secondaryVaultStatePost.ticketsTargetSolAmount.toString())
+            .to.be.eq(mSolSecondaryVaultStatePre.ticketsTargetSolAmount.sub(computedSolValueReceived).toString());
+        }
+
+        // check main state after
+        const mainStateAfter = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+        // console.log("mainStateAfter.outstandingTicketsSolValue",mainStateAfter.outstandingTicketsSolValue.toString());
+        expect(mainStateAfter.outstandingTicketsSolValue.toString())
+          .to.eql(mainStatePre.outstandingTicketsSolValue.sub(amountSolClaimed).toString());
+
+        // check ticket account after -- must have been deleted
+        try {
+          const ticketAccountAfter = await program.account.unstakeTicket.fetch(newTicketAccount2.publicKey);
+        } catch (ex) {
+          expect(ex.message).to.contain("Account does not exist or has no data")
+        }
+      }
+
     }
-
 
     after(() => {
       // remove listeners

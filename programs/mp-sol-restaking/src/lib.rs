@@ -37,6 +37,13 @@ pub mod mp_sol_restaking {
         update_vault_token_sol_price::handle_update_vault_token_sol_price(ctx)
     }
 
+    pub fn configure_main_vault(
+        ctx: Context<ConfigureMainVault>,
+        values: ConfigureMainVaultValues,
+    ) -> Result<()> {
+        configure_main_vault::handle_configure_main_vault(ctx, values)
+    }
+
     pub fn configure_secondary_vault(
         ctx: Context<ConfigureSecondaryVault>,
         values: ConfigureSecondaryVaultValues,
@@ -61,4 +68,8 @@ pub mod mp_sol_restaking {
         users::unstake::handle_unstake(ctx, mpsol_amount)
     }
     
+    pub fn ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount: u64) -> Result<()> {
+        users::ticket_claim::handle_ticket_claim(ctx, withdraw_sol_value_amount)
+    }
+
 }

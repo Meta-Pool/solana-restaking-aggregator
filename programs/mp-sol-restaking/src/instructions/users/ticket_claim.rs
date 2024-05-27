@@ -29,7 +29,7 @@ pub struct TicketClaim<'info> {
 
     // secondary vaults are PDAs of main_state
     // only this program & main_state can create a secondary vault
-    #[account(
+    #[account(mut,
         seeds = [
             &main_state.key().to_bytes(),
             &lst_mint.key().to_bytes(),
@@ -47,7 +47,7 @@ pub struct TicketClaim<'info> {
         bump
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
-    #[account(
+    #[account(mut,
         associated_token::mint = lst_mint, 
         associated_token::authority = vaults_ata_pda_auth
     )]
@@ -76,7 +76,7 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
         ErrorCode::NotEnoughSolValueInTicket
     );
 
-    // check mpsol_amount > MIN_MOVEMENT_LAMPORTS
+    // check sol_amount > MIN_MOVEMENT_LAMPORTS
     if withdraw_sol_value_amount < ticket_sol_value {
         require_gte!(
             withdraw_sol_value_amount,
@@ -92,7 +92,13 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
     ctx.accounts.main_state.outstanding_tickets_sol_value -= withdraw_sol_value_amount;
     // update current ticket_sol_value
     ctx.accounts.ticket_account.ticket_sol_value -= withdraw_sol_value_amount;
+    // subtract from tickets_target_sol_amount
+    // Note: `tickets_target_sol_amount` is a target value eventually updated. 
+    //       Even if this value is not correct, the beneficiary should be able to claim the ticket
+    ctx.accounts.vault_state.tickets_target_sol_amount =
+        ctx.accounts.vault_state.tickets_target_sol_amount.saturating_sub(withdraw_sol_value_amount);
 
+    // if total withdraw
     if ctx.accounts.ticket_account.ticket_sol_value == 0 {
         // close ticket, 
         // mark ticket-account for deletion by moving all raw.account-storage lamports to beneficiary.
@@ -104,17 +110,14 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
         **beneficiary_lamports += **ticket_account_lamports;
         **ticket_account_lamports = 0;
     }
-
-    // sol value should be <= tickets_target_sol_amount
-    require_gte!(
-        ctx.accounts.vault_state.tickets_target_sol_amount,
-        withdraw_sol_value_amount,
-        ErrorCode::VaultTicketTargetIsLowerThanSolValueToWithdraw
-    );
-    // if removed, we can lower the tickets_target_sol_amount
-    ctx.accounts.vault_state.tickets_target_sol_amount -= withdraw_sol_value_amount;
-    // also it is no longer outstanding
-    ctx.accounts.main_state.outstanding_tickets_sol_value -= withdraw_sol_value_amount;
+    else {
+        // can't leave dust, remainder > MIN_MOVEMENT_LAMPORTS
+        require_gte!(
+            ctx.accounts.ticket_account.ticket_sol_value,
+            MIN_MOVEMENT_LAMPORTS,
+            ErrorCode::CantLeaveDustInTicket
+        );
+    }
 
     // we need the LST/SOL price to be updated
     // update LST/SOL price now
@@ -134,16 +137,21 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
     );
     // send tokens to the user
     {
-        let transfer_instruction = Transfer {
-            from: ctx.accounts.vault_lst_account.to_account_info(),
-            to: ctx.accounts.beneficiary_lst_account.to_account_info(),
-            authority: ctx.accounts.vaults_ata_pda_auth.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new(
+        anchor_spl::token::transfer(
+        CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-        );
-        anchor_spl::token::transfer(cpi_ctx, lst_amount_to_deliver)?;
+            Transfer {
+                from: ctx.accounts.vault_lst_account.to_account_info(),
+                to: ctx.accounts.beneficiary_lst_account.to_account_info(),
+                authority: ctx.accounts.vaults_ata_pda_auth.to_account_info(),
+            },
+            &[&[
+                &ctx.accounts.main_state.key().to_bytes(),
+                VAULTS_ATA_AUTH_SEED,
+                &[ctx.bumps.vaults_ata_pda_auth]
+                ]]
+        ), 
+        lst_amount_to_deliver)?;
     }
     // the tokens are removed from the vault total
     ctx.accounts.vault_state.vault_total_lst_amount -= lst_amount_to_deliver;

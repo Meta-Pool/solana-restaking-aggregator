@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "addn",
         "alloc",
         "bincode",
         "Blockhash",
@@ -13,6 +14,7 @@
         "JITO",
         "Jito4APyf642JPZPx3hGc6WWJ8zPKtRbRs4P815Awbb",
         "Keypair",
+        "lamport",
         "LAMPORTS",
         "localnet",
         "MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD",
@@ -31,6 +33,7 @@
         "sp1V4h2gWorkGhVcazBc22Hfo2f5sd7jcjT4EDPrWFF",
         "SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy",
         "strat",
+        "subn",
         "SVPwV3gvWhUHi3pyKNEXxWixUXigzpqpzVYo32MXatZ",
         "Tato",
         "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
@@ -48,4 +51,5 @@
         "yarn.lock"
 
     ],
+    "typescript.tsdk": "node_modules/typescript/lib",
 }

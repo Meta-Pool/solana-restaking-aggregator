@@ -60,10 +60,10 @@ pub enum ErrorCode {
     #[msg("Not Enough Lst in Vault")]
     NotEnoughLstInVault,
 
-    #[msg("Vault Ticket Target is Lower Than Sol Value to Withdraw")]
-    VaultTicketTargetIsLowerThanSolValueToWithdraw,
-
     #[msg("Missing Lst State in Remaining Accounts")]
     MissingLstStateInRemainingAccounts,
+
+    #[msg("Can't Leave Dust In Ticket, either remove all or leave a significant amount")]
+    CantLeaveDustInTicket,
 }
 
