@@ -569,8 +569,12 @@ describe("mp-sol-restaking", () => {
       // config for 0hs waiting time
       {
         console.log("config, 0hs wait time")
-        let configTx = await program.methods.configureMainVault({ unstakeTicketWaitingHours: 0 })
-          .accounts({
+        let configTx = await program.methods.configureMainVault({
+          unstakeTicketWaitingHours: 0,
+          treasuryMpsolAccount: null, // null => None => No change
+          performanceFeeBp: null, // null => None => No change
+        }
+        ).accounts({
             admin: wallet.publicKey,
             mainState: mainStateKeyPair.publicKey,
           })
@@ -593,7 +597,6 @@ describe("mp-sol-restaking", () => {
       // create the ticket
       const newTicketAccount2 = await testCreate1e10UnstakeTicket(depositorMpSolAta, 0);
       const amountSolTicket = new BN(1e10.toFixed())
-
 
       // claim 1/3
       {

@@ -4,6 +4,9 @@ use anchor_lang::prelude::*;
 
 use anchor_spl::token::{Mint, Token};
 
+const INITIAL_PERFORMANCE_FEE_BP: u16 = 1000;
+const INITIAL_UNSTAKE_TICKET_WAITING_HOURS: u16 = 48;
+
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(mut)]
@@ -39,9 +42,11 @@ pub fn handle_initialize(ctx: Context<Initialize>, operator_auth:Pubkey, strateg
         operator_auth,
         strategy_rebalancer_auth,
         mpsol_mint: ctx.accounts.mpsol_token_mint.key(),
+        treasury_mpsol_account: None,
+        performance_fee_bp: INITIAL_PERFORMANCE_FEE_BP,
         backing_sol_value: 0,
         outstanding_tickets_sol_value: 0,
-        unstake_ticket_waiting_hours: 48,
+        unstake_ticket_waiting_hours: INITIAL_UNSTAKE_TICKET_WAITING_HOURS,
     });
     Ok(())
 }

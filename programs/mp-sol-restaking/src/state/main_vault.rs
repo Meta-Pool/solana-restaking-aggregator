@@ -12,6 +12,8 @@ pub struct MainVaultState {
     pub strategy_rebalancer_auth: Pubkey, 
 
     pub mpsol_mint: Pubkey,
+    pub treasury_mpsol_account: Option<Pubkey>,
+    pub performance_fee_bp: u16,
 
     /// SOL-value backing the mpsol.supply
     /// "SOL-value" is the estimation of the SOL backing all the LSTs stored in the vaults

@@ -65,5 +65,11 @@ pub enum ErrorCode {
 
     #[msg("Can't Leave Dust In Ticket, either remove all or leave a significant amount")]
     CantLeaveDustInTicket,
+
+    #[msg("Invalid Treasury Mpsol Account")]
+    InvalidTreasuryMpsolAccount,
+
+    #[msg("Performance Fee Too High")]
+    PerformanceFeeTooHigh
 }
 
