@@ -56,17 +56,13 @@ pub fn handle_update_lst_amount(ctx: Context<UpdateLstAmount>) -> Result<()> {
     ctx.accounts.strat_state.strat_total_lst_amount =
         ctx.accounts.strat_state.strat_total_lst_amount + profit - slashing;
 
-    // emit!(crate::events::UpdateVaultTokenSolPriceEvent {
-    //     main_state: ctx.accounts.main_state.key(),
-    //     lst_mint: ctx.accounts.lst_mint.key(),
-    //     lst_amount,
-    //     old_price_p32,
-    //     old_sol_value,
-    //     new_price_p32,
-    //     new_sol_value,
-    //     vault_total_sol_value: ctx.accounts.secondary_state.vault_total_sol_value,
-    //     main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
-    // });
+    emit!(crate::events::UpdateStratLstAmountEvent {
+        strat_state: ctx.accounts.strat_state.key(),
+        lst_mint: ctx.accounts.lst_mint.key(),
+        old_lst_amount,
+        profit,
+        slashing,
+    });
 
     Ok(())
 }
