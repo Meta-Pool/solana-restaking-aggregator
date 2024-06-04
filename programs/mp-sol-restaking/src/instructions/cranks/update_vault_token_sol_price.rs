@@ -5,9 +5,9 @@ use crate::state::external::spl_stake_pool_state::{
     AccountType, SplStakePoolState, SPL_STAKE_POOL_PROGRAM,
 };
 use crate::state::MainVaultState;
-use crate::util::{lst_amount_to_sol_value, TWO_POW_32};
 use crate::{error::ErrorCode, SecondaryVaultState};
 use anchor_lang::prelude::*;
+use shared_lib::{lst_amount_to_sol_value, mul_div, TWO_POW_32};
 
 use ::borsh::BorshDeserialize;
 use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
@@ -114,7 +114,7 @@ pub fn internal_update_vault_token_sol_price(
             );
             // compute true price = total_lamports / pool_token_supply
             // with 32-bit precision
-            crate::util::mul_div(
+            mul_div(
                 spl_stake_pool_state.total_lamports,
                 TWO_POW_32,
                 spl_stake_pool_state.pool_token_supply,

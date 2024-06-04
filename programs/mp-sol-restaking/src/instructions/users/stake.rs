@@ -1,12 +1,10 @@
 use crate::internal_update_vault_token_sol_price;
-use crate::util::{
-    lst_amount_to_sol_value, sol_value_to_mpsol_amount, TWO_POW_32,
-};
 use crate::{constants::*, error::ErrorCode, MainVaultState, SecondaryVaultState};
 /// Stake any of the supported LST tokens
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount, Transfer};
+use shared_lib::{lst_amount_to_sol_value, sol_value_to_mpsol_amount, TWO_POW_32};
 
 #[derive(Accounts)]
 /// Stake a LST in one of the secondary vaults

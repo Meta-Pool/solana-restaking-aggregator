@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
+use shared_lib::{lst_amount_to_sol_value, sol_value_to_lst_amount};
 
 use crate::error::ErrorCode;
-use crate::util::{lst_amount_to_sol_value, sol_value_to_lst_amount};
 
 // Secondary-vault State
 #[account]

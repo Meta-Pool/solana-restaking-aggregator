@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
-use crate::util::sol_value_to_lst_amount;
+use shared_lib::sol_value_to_lst_amount;
 use crate::{internal_update_vault_token_sol_price, SecondaryVaultState};
 use crate::{constants::*, error::ErrorCode, MainVaultState, UnstakeTicket};
 use anchor_spl::token::{Token, TokenAccount, Transfer};

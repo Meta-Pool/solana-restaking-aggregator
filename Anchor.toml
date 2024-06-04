@@ -1,5 +1,9 @@
 [toolchain]
 
+[workspace]
+members = ["programs/*"]
+exclude=["programs/shared-lib"]
+
 [features]
 resolution = true
 skip-lint = false

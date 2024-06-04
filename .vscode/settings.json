@@ -48,7 +48,8 @@
         "*.toml",
         "package.json",
         "tasks.json",
-        "yarn.lock"
+        "yarn.lock",
+        "**/.cargo/*"
 
     ],
     "typescript.tsdk": "node_modules/typescript/lib",

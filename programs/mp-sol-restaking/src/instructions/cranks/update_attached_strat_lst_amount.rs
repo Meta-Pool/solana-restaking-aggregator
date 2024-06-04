@@ -1,12 +1,11 @@
 use crate::{
-    constants::*,
-    error::ErrorCode,
+    constants::*, error::ErrorCode,
     external::common_vault_strategy_state::CommonVaultStrategyState,
-    util::{apply_bp, check_price_not_stale, lst_amount_to_sol_value, sol_value_to_mpsol_amount},
     MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
+use shared_lib::{apply_bp, lst_amount_to_sol_value, sol_value_to_mpsol_amount};
 
 #[derive(Accounts)]
 /// permissionless
@@ -170,4 +169,24 @@ pub fn handle_update_attached_strat_lst_amount(
     }
 
     Ok(())
+}
+
+pub const ONE_DAY_IN_SECONDS: u64 = 60 * 60 * 24;
+
+fn check_price_not_stale_seconds(
+    token_sol_price_timestamp: u64,
+    max_seconds_allowed: u64,
+) -> Result<()> {
+    let now_ts = Clock::get().unwrap().unix_timestamp as u64;
+    let elapsed_seconds = now_ts - token_sol_price_timestamp;
+    require_gte!(
+        max_seconds_allowed,
+        elapsed_seconds,
+        ErrorCode::TokenSolPriceIsStale
+    );
+    Ok(())
+}
+
+pub fn check_price_not_stale(token_sol_price_timestamp: u64) -> Result<()> {
+    check_price_not_stale_seconds(token_sol_price_timestamp, ONE_DAY_IN_SECONDS)
 }

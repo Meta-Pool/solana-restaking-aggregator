@@ -21,3 +21,4 @@ anchor-lang = { workspace = true }
 anchor-spl = { workspace = true }
 solana-program = { workspace = true }
 borsh = { workspace = true }
+#shared_lib = { path = "../shared-lib" }

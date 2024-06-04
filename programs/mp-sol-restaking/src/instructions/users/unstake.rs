@@ -1,8 +1,8 @@
-use crate::util::mpsol_amount_to_sol_value;
 use crate::{constants::*, error::ErrorCode, MainVaultState, UnstakeTicket};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount};
+use shared_lib::mpsol_amount_to_sol_value;
 
 #[derive(Accounts)]
 /// Unstake: burn mpSOL and get an unstake-ticket for the SOL-value of the mpSOL burned

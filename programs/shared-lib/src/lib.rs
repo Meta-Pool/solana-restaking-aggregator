@@ -1,10 +1,8 @@
-use crate::error::ErrorCode;
-use anchor_lang::prelude::*;
-use anchor_lang::{require_gte, solana_program::clock::Clock};
+// use crate::error::ErrorCode;
+// use anchor_lang::prelude::*;
+// use anchor_lang::{require_gte, solana_program::clock::Clock};
 
 pub const TWO_POW_32: u64 = 0x1_0000_0000; // 32-bit price precision, to store a LST/SOL price in u64
-
-pub const ONE_DAY_IN_SECONDS: u64 = 60 * 60 * 24;
 
 pub const BASIS_POINTS_100_PERCENT: u16 = 10_000;
 
@@ -61,22 +59,4 @@ pub fn sol_value_to_lst_amount(sol_value: u64, lst_sol_price_p32: u64) -> u64 {
 // apply basis points to an amount
 pub fn apply_bp(amount: u64, bp: u16) -> u64 {
     mul_div(amount, bp as u64, BASIS_POINTS_100_PERCENT as u64)
-}
-
-fn check_price_not_stale_seconds(
-    token_sol_price_timestamp: u64,
-    max_seconds_allowed: u64,
-) -> Result<()> {
-    let now_ts = Clock::get().unwrap().unix_timestamp as u64;
-    let elapsed_seconds = now_ts - token_sol_price_timestamp;
-    require_gte!(
-        max_seconds_allowed,
-        elapsed_seconds,
-        ErrorCode::TokenSolPriceIsStale
-    );
-    Ok(())
-}
-
-pub fn check_price_not_stale(token_sol_price_timestamp: u64) -> Result<()> {
-    check_price_not_stale_seconds(token_sol_price_timestamp, ONE_DAY_IN_SECONDS)
 }
