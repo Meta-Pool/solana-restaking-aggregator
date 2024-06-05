@@ -6,4 +6,8 @@ reference doc: https://docs.google.com/document/d/1LIU1ikWCmLfCvQsNjb4_iSgXcEOAg
 
 ### Tests
 
+    # only once, to gather accounts for test-validator's genesis
+    bash test-genesis/generate.sh
+
+    # launch tests 
     anchor test
