@@ -1,15 +1,15 @@
 pub mod constants;
 pub mod error;
+pub mod events;
 pub mod instructions;
 pub mod state;
-pub mod events;
 
 use anchor_lang::prelude::*;
 
 pub use constants::*;
+pub use events::*;
 pub use instructions::*;
 pub use state::*;
-pub use events::*;
 
 declare_id!("MVPpyLcH42bRtLXUWFnozcycqZ1WByvjDthCAgHh1fM");
 
@@ -32,10 +32,6 @@ pub mod mp_sol_restaking {
         create_secondary_vault::handle_create_secondary_vault(ctx)
     }
 
-    pub fn update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
-        update_vault_token_sol_price::handle_update_vault_token_sol_price(ctx)
-    }
-
     pub fn configure_main_vault(
         ctx: Context<ConfigureMainVault>,
         values: ConfigureMainVaultValues,
@@ -50,10 +46,20 @@ pub mod mp_sol_restaking {
         configure_secondary_vault::handle_configure_secondary_vault(ctx, values)
     }
 
-    pub fn attach_common_strategy_state(
-        ctx: Context<AttachCommonStrategyState>
-    ) -> Result<()> {
+    pub fn attach_common_strategy_state(ctx: Context<AttachCommonStrategyState>) -> Result<()> {
         attach_common_strategy_state::handle_attach_common_strategy_state(ctx)
+    }
+
+    // ------------------
+    // cranks
+    // ------------------
+    pub fn update_attached_strat_lst_amount(
+        ctx: Context<UpdateAttachedStratLstAmount>,
+    ) -> Result<()> {
+        handle_update_attached_strat_lst_amount(ctx)
+    }
+    pub fn update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
+        handle_update_vault_token_sol_price(ctx)
     }
 
     // ------------------
@@ -66,9 +72,8 @@ pub mod mp_sol_restaking {
     pub fn unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
         users::unstake::handle_unstake(ctx, mpsol_amount)
     }
-    
+
     pub fn ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount: u64) -> Result<()> {
         users::ticket_claim::handle_ticket_claim(ctx, withdraw_sol_value_amount)
     }
-
 }
