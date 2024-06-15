@@ -95,7 +95,6 @@ pub fn internal_update_vault_token_sol_price(
                 SPL_STAKE_POOL_PROGRAM,
                 ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
             );
-            require_eq!(lst_state.data_len(), 611);
             // try deserialize
             let mut data_slice = &lst_state.data.borrow()[..];
             let spl_stake_pool_state: SplStakePoolState =
