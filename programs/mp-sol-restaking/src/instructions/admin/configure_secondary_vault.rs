@@ -7,6 +7,7 @@ use anchor_spl::token::Mint;
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct ConfigureSecondaryVaultValues {
     deposits_disabled: Option<bool>,
+    token_deposit_cap: Option<u64>
 }
 
 #[derive(Accounts)]
@@ -40,5 +41,9 @@ pub fn handle_configure_secondary_vault(
     if let Some(deposits_disabled) = values.deposits_disabled {
         ctx.accounts.secondary_state.deposits_disabled = deposits_disabled
     }
+    if let Some(token_deposit_cap) = values.token_deposit_cap {
+        ctx.accounts.secondary_state.token_deposit_cap = token_deposit_cap
+    }
+    
     Ok(())
 }

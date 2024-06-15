@@ -289,7 +289,7 @@ async function createAndTestMainState(shareTokenKeyPair: Keypair): Promise<
   console.log("test wSOL deposit")
   {
     // enable deposits in Wsol vault
-    await program.methods.configureSecondaryVault({ depositsDisabled: false })
+    await program.methods.configureSecondaryVault({ depositsDisabled: false, tokenDepositCap: null })
       .accounts({
         admin: wallet.publicKey,
         mainState: mainStateKeyPair.publicKey,
@@ -490,7 +490,7 @@ describe("mp-sol-restaking", () => {
 
       {
         console.log("config, enable deposits")
-        let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false })
+        let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false, tokenDepositCap: null })
           .accounts({
             admin: wallet.publicKey,
             mainState: mainStateKeyPair.publicKey,
@@ -587,7 +587,7 @@ describe("mp-sol-restaking", () => {
 
         {
           console.log("config, enable deposits for JITO_SOL_TOKEN_MINT")
-          let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false })
+          let configTx = await program.methods.configureSecondaryVault({ depositsDisabled: false, tokenDepositCap: null })
             .accounts({
               admin: wallet.publicKey,
               mainState: mainStateKeyPair.publicKey,
