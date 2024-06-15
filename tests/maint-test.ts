@@ -4,15 +4,17 @@ import { MpSolRestaking } from "../target/types/mp_sol_restaking";
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import * as splStakePool from "@solana/spl-stake-pool";
 // @ts-ignore: marinade-sdk has @coral-xyz/anchor and an older version of @solana/spl-token -- vscode intellisense gets confused
-import { NATIVE_MINT, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
+import { NATIVE_MINT, TOKEN_PROGRAM_ID, Token, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
 
 import { Marinade, MarinadeConfig, Provider } from '@marinade.finance/marinade-ts-sdk'
 
 import { expect } from 'chai';
 import { BN } from "bn.js";
-import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens } from "./util/spl-token-mint-helpers";
+import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens, sendTx } from "./util/spl-token-mint-helpers";
 import { MethodsBuilder } from "@coral-xyz/anchor/dist/cjs/program/namespace/methods";
 import { AllInstructions } from "@coral-xyz/anchor/dist/cjs/program/namespace/types";
+import { createMintToInstruction } from "@solana/spl-token";
+import { createSyncNativeInstruction } from "@solana/spl-token";
 
 const ONE_E9: string = 1e9.toFixed()
 const TWO_POW_32: string = (2 ** 32).toFixed()
@@ -258,12 +260,34 @@ describe("mp-sol-restaking", () => {
     expect(decodedMint.mintAuthority).to.eql(mainVaultMintAuth);
     expect(decodedMint.freezeAuthority).to.eql(mainVaultMintAuth);
 
+    // create depositor mpsol ATA account
+    let depositorMpSolAta = await createAta(provider, wallet, mpsolTokenMintKeyPair.publicKey, depositorUserKeyPair.publicKey)
+
+    // compute common PDAs
+    const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
+      [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
+      , program.programId);
+
     // ------------------------------
     // create wSOL secondary vault
     // ------------------------------
     let wSolSecondaryStateAddress =
-      await testCreateSecondaryVault("wSOL", WSOL_TOKEN_MINT
-      );
+      await testCreateSecondaryVault("wSOL", WSOL_TOKEN_MINT);
+
+    let amountWsolDeposited = new BN(1e11.toFixed())
+    //let depositorAtaWSol = await mintTokens(provider, wallet, new PublicKey(WSOL_TOKEN_MINT), depositorUserKeyPair.publicKey, amountWsolDeposited.toNumber());
+    let depositorAtaWSol = await createAta(provider, wallet, new PublicKey(WSOL_TOKEN_MINT), depositorUserKeyPair.publicKey)
+    let instructions = [
+      // transfer SOL to ATA then convert to wSOL balance
+      anchor.web3.SystemProgram.transfer({
+        fromPubkey: wallet.publicKey,
+        toPubkey: depositorAtaWSol,
+        lamports: amountWsolDeposited.toNumber() + 1e9,
+      }),
+      // sync wrapped SOL balance
+      createSyncNativeInstruction(depositorAtaWSol)
+    ];
+    await sendTx(provider, wallet, instructions)
 
     // test wSOL update price (simple, always 1)
     {
@@ -272,6 +296,41 @@ describe("mp-sol-restaking", () => {
       let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
       expect(wSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
       expect(wSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(TWO_POW_32);
+    }
+
+    console.log("test wSOL deposit")
+    {
+      // enable deposits in Wsol vault
+      await program.methods.configureSecondaryVault({ depositsDisabled: false })
+        .accounts({
+          admin: wallet.publicKey,
+          mainState: mainStateKeyPair.publicKey,
+          lstMint: new PublicKey(WSOL_TOKEN_MINT),
+        })
+        .rpc()
+
+      const vaultWSolAta = await getAssociatedTokenAddressSync(
+        new PublicKey(WSOL_TOKEN_MINT), vaultAtaAuth, true);
+
+      let stakeTx = await program.methods
+        .stake(amountWsolDeposited)
+        .accounts({
+          mainState: mainStateKeyPair.publicKey,
+          lstMint: new PublicKey(WSOL_TOKEN_MINT),
+          vaultLstAccount: vaultWSolAta,
+          depositor: depositorUserKeyPair.publicKey,
+          depositorLstAccount: depositorAtaWSol,
+          mpsolMint: mpsolTokenMintKeyPair.publicKey,
+          depositorMpsolAccount: depositorMpSolAta,
+        })
+        
+      try {
+        await stakeTx.simulate()
+      } catch (ex) {
+        console.error(ex)
+        throw(ex)
+      }
+      await stakeTx.signers([depositorUserKeyPair]).rpc()
     }
 
     // ------------------------------
@@ -294,14 +353,7 @@ describe("mp-sol-restaking", () => {
     let depositorAtaJitoSol = await mintTokens(provider, wallet, new PublicKey(JITO_SOL_TOKEN_MINT), depositorUserKeyPair.publicKey, 1e12)
     // ------------------------------
 
-    // create needed accounts
-    let depositorMpSolAta = await createAta(provider, wallet, mpsolTokenMintKeyPair.publicKey, depositorUserKeyPair.publicKey)
-
     // compute PDAs
-    const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
-      [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
-      , program.programId);
-
     const vaultMsolAta = await getAssociatedTokenAddressSync(
       new PublicKey(MARINADE_MSOL_MINT), vaultAtaAuth, true);
 
@@ -351,6 +403,7 @@ describe("mp-sol-restaking", () => {
       // remember main state
       const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
       const preMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+      const prevMpSolBalance = new BN(await getTokenAccountBalance(provider, depositorMpSolAta));
 
       // create ix to deposit the mSOL in the vault
       let amountMsolDeposited = new BN(1e12.toFixed())
@@ -421,8 +474,9 @@ describe("mp-sol-restaking", () => {
       const solValueDeposited = amountMsolDeposited.mul(mSolSecondaryVaultState.lstSolPriceP32).div(new BN(TWO_POW_32));
       const correspondingMpSolAmount = preMpSolMintSupply.isZero() ? solValueDeposited :
         solValueDeposited.mul(preMpSolMintSupply).div(mainStatePre.backingSolValue);
-      let mpSolReceived = new BN(await getTokenAccountBalance(provider, depositorMpSolAta));
-      expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.toString());
+      let postMpSolBalance = new BN(await getTokenAccountBalance(provider, depositorMpSolAta))
+      let mpSolReceived = postMpSolBalance.sub(prevMpSolBalance);
+        expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.toString());
 
       // check secondary vault state after stake
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
@@ -575,9 +629,9 @@ describe("mp-sol-restaking", () => {
           performanceFeeBp: null, // null => None => No change
         }
         ).accounts({
-            admin: wallet.publicKey,
-            mainState: mainStateKeyPair.publicKey,
-          })
+          admin: wallet.publicKey,
+          mainState: mainStateKeyPair.publicKey,
+        })
 
         // // uncomment to show tx simulation program log
         // {
