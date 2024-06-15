@@ -74,7 +74,7 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
 
     // check token_sol_price is in range and not stale
     // LST/SOL price must be > 1
-    require_gt!(
+    require_gte!(
         ctx.accounts.vault_state.lst_sol_price_p32,
         TWO_POW_32,
         ErrorCode::InvalidStoredLstPrice
