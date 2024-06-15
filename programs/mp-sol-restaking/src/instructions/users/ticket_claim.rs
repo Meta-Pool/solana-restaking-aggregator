@@ -17,7 +17,7 @@ pub struct TicketClaim<'info> {
     #[account(mut)]
     pub beneficiary: Signer<'info>,
 
-    #[account(mut, has_one = beneficiary)]
+    #[account(mut, has_one = beneficiary, has_one = main_state)]
     pub ticket_account: Account<'info, UnstakeTicket>,
 
     /// CHECK: no need to decode mint
