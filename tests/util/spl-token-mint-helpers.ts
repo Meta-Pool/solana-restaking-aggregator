@@ -48,14 +48,15 @@ export async function createAta(provider: Provider, wallet: any, mint: PublicKey
     tx.feePayer = wallet.payer.publicKey
     tx.add(...instructions);
 
-    // let stakeMsolTx = new Transaction( await provider.connection.getLatestBlockhash());
-    // stakeMsolTx.feePayer = wallet.publicKey
-    // stakeMsolTx.add(depositResult.transaction)
-    // stakeMsolTx = await wallet.signTransaction(stakeMsolTx)
-    // await provider.sendAndConfirm(stakeMsolTx);
+    // simulate
+    try {
+        await provider.simulate(tx)
+    } catch (ex) {
+        console.log(ex)
+        throw (ex)
+    }
 
     // Sign the transaction
-    //wallet.signTransaction(tx)
     tx.partialSign(wallet.payer);
 
     // Send and confirm the transaction
@@ -112,7 +113,7 @@ export async function mintTokens(provider: Provider, wallet: any, mint: PublicKe
 
     console.log("send and confirm mint-to");
     // Send and confirm the transaction
-    sendTx(provider,wallet,instructions)
+    sendTx(provider, wallet, instructions)
 
     console.log(`Minted ${amount} tokens to ${recipient}`);
 

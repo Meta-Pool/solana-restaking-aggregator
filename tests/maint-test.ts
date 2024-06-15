@@ -13,7 +13,6 @@ import { BN } from "bn.js";
 import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens, sendTx } from "./util/spl-token-mint-helpers";
 import { MethodsBuilder } from "@coral-xyz/anchor/dist/cjs/program/namespace/methods";
 import { AllInstructions } from "@coral-xyz/anchor/dist/cjs/program/namespace/types";
-import { createMintToInstruction } from "@solana/spl-token";
 import { createSyncNativeInstruction } from "@solana/spl-token";
 
 const ONE_E9: string = 1e9.toFixed()
@@ -36,9 +35,6 @@ const provider = program.provider as anchor.AnchorProvider;
 const wallet = provider.wallet;
 
 const stakeEventListenerNumber = program.addEventListener("stakeEvent", stakeEventHandler)
-
-const mainStateKeyPair = Keypair.generate()
-const mpsolTokenMintKeyPair = Keypair.generate()
 
 const operatorAuthKeyPair = Keypair.generate()
 const strategyRebalancerAuthKeyPair = Keypair.generate()
@@ -81,7 +77,7 @@ async function airdropLamports(provider: Provider, pubkey: PublicKey, amountSol:
 
 //-------------------------------
 /// returns vault state address
-async function testCreateSecondaryVault(tokenName: string, lstMint: string): Promise<PublicKey> {
+async function testCreateSecondaryVault(mainStateKeyPair: Keypair, tokenName: string, lstMint: string): Promise<PublicKey> {
   // creating a secondary vault
   console.log(`creating ${tokenName} secondary vault, lstMint:${lstMint}`)
   let lstMintPublickey = new PublicKey(lstMint);
@@ -133,7 +129,7 @@ async function testCreateSecondaryVault(tokenName: string, lstMint: string): Pro
 
 //-------------------------------
 /// returns vault state contents
-function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string) {
+function testGetUpdateVaultPriceMethod(mainStateKeyPair: Keypair, tokenName: string, lstMint: string) {
   // -----------------------
   console.log(`update ${tokenName} vault token price, lstMint:${lstMint}`)
   return program.methods.updateVaultTokenSolPrice()
@@ -146,10 +142,14 @@ function testGetUpdateVaultPriceMethod(tokenName: string, lstMint: string) {
 
 //-------------------------
 // creates a unstake ticket
-async function testCreate1e10UnstakeTicket(depositorMpSolAta: PublicKey, expectWaitHours: number): Promise<Keypair> {
+async function testCreate1e10UnstakeTicket(
+  mainStateKeyPair: Keypair,
+  depositorMpSolAta: PublicKey,
+  expectWaitHours: number):
+  Promise<Keypair> {
   // remember main state
   const mainStatePre = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
-  const preMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+  const preMpSolMintSupply = new BN(await getTokenMintSupply(provider, mainStatePre.mpsolMint))
 
   // give some lamports to depositor to pay for the ticket-account
   await airdropLamports(provider, depositorUserKeyPair.publicKey);
@@ -157,14 +157,14 @@ async function testCreate1e10UnstakeTicket(depositorMpSolAta: PublicKey, expectW
   // account to store the unstake-ticket
   let newTicketKeyPair = new Keypair()
 
-  // create ix to deposit the mSOL in the vault
+  // create tx to unstake
   let amountMpsolUnstaked = new BN(1e10.toFixed())
   let unstakeTx = program.methods
     .unstake(amountMpsolUnstaked)
     .accounts({
       mainState: mainStateKeyPair.publicKey,
       unstaker: depositorUserKeyPair.publicKey,
-      mpsolMint: mpsolTokenMintKeyPair.publicKey,
+      mpsolMint: mainStatePre.mpsolMint,
       unstakerMpsolAccount: depositorMpSolAta,
       newTicketAccount: newTicketKeyPair.publicKey,
     })
@@ -188,7 +188,7 @@ async function testCreate1e10UnstakeTicket(depositorMpSolAta: PublicKey, expectW
       .rpc()
   }
 
-  // check after unstake
+  // check after create unstake ticket
 
   // check ticket AccountInfo
   const ticketAccountInfo = await provider.connection.getAccountInfo(newTicketKeyPair.publicKey);
@@ -208,11 +208,152 @@ async function testCreate1e10UnstakeTicket(depositorMpSolAta: PublicKey, expectW
   expect(mainStatePre.backingSolValue.sub(ticket.ticketSolValue).toString()).to.eql(mainStateAfter.backingSolValue.toString());
 
   // check mpSOL mint after
-  const postMpSolMintSupply = new BN(await getTokenMintSupply(provider, mpsolTokenMintKeyPair.publicKey))
+  const postMpSolMintSupply = new BN(await getTokenMintSupply(provider, mainStatePre.mpsolMint))
   expect(preMpSolMintSupply.sub(amountMpsolUnstaked).toString()).to.eql(postMpSolMintSupply.toString());
 
   // test ticket claim
   return newTicketKeyPair
+}
+
+async function createAndTestMainState(shareTokenKeyPair: Keypair): Promise<
+  {
+    mainStateKeyPair: Keypair
+    vaultAtaAuth: PublicKey
+    depositorMpSolAta: PublicKey
+  }> {
+  const mainStateKeyPair = Keypair.generate()
+
+  // ----------------------
+  // initialize main state
+  // ----------------------
+  {
+    const tx = await program.methods.initialize(
+      operatorAuthKeyPair.publicKey, strategyRebalancerAuthKeyPair.publicKey
+    )
+      .accounts({
+        admin: wallet.publicKey,
+        mainState: mainStateKeyPair.publicKey,
+        mpsolTokenMint: shareTokenKeyPair.publicKey,
+      })
+      .signers([mainStateKeyPair, shareTokenKeyPair]) // note: provider.wallet is automatically included as payer
+      .rpc();
+    //console.log("Your transaction signature", tx);
+  }
+
+  // check main state
+  const mainState = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
+  expect(mainState.admin).to.eql(wallet.publicKey);
+  expect(mainState.mpsolMint).to.eql(shareTokenKeyPair.publicKey);
+  expect(mainState.operatorAuth).to.eql(operatorAuthKeyPair.publicKey);
+  expect(mainState.strategyRebalancerAuth).to.eql(strategyRebalancerAuthKeyPair.publicKey);
+
+  const [mainVaultMintAuth, mainVaultMintAuthBump] =
+    PublicKey.findProgramAddressSync(
+      [
+        mainStateKeyPair.publicKey.toBuffer(),
+        idlConstant(program.idl, "mainVaultMintAuthSeed")
+      ],
+      program.programId
+    )
+
+  const decodedMint = await getMint(provider.connection, shareTokenKeyPair.publicKey)
+  expect(decodedMint.decimals).to.eql(9);
+  expect(decodedMint.mintAuthority).to.eql(mainVaultMintAuth);
+  expect(decodedMint.freezeAuthority).to.eql(mainVaultMintAuth);
+
+  // create depositor mpsol ATA account
+  let depositorMpSolAta = await createAta(provider, wallet, shareTokenKeyPair.publicKey, depositorUserKeyPair.publicKey)
+
+  // compute common PDAs
+  const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
+    [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
+    , program.programId);
+
+  // ------------------------------
+  // create wSOL secondary vault
+  // ------------------------------
+  let wSolSecondaryStateAddress =
+    await testCreateSecondaryVault(mainStateKeyPair, "wSOL", WSOL_TOKEN_MINT);
+
+  let amountWsolDeposited = new BN(1e11.toFixed())
+
+  // test wSOL update price (simple, always 1)
+  {
+    const method = testGetUpdateVaultPriceMethod(mainStateKeyPair, "wSOL", WSOL_TOKEN_MINT);
+    await method.rpc();
+    let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
+    expect(wSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
+    expect(wSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(TWO_POW_32);
+  }
+
+  console.log("test wSOL deposit")
+  {
+    // enable deposits in Wsol vault
+    await program.methods.configureSecondaryVault({ depositsDisabled: false })
+      .accounts({
+        admin: wallet.publicKey,
+        mainState: mainStateKeyPair.publicKey,
+        lstMint: new PublicKey(WSOL_TOKEN_MINT),
+      })
+      .rpc()
+
+    const vaultWSolAta = await getAssociatedTokenAddressSync(
+      new PublicKey(WSOL_TOKEN_MINT), vaultAtaAuth, true);
+
+    const depositorAtaWSol = await getAssociatedTokenAddressSync(
+      new PublicKey(WSOL_TOKEN_MINT), depositorUserKeyPair.publicKey, true);
+
+    let stakeTx = await program.methods
+      .stake(amountWsolDeposited)
+      .accounts({
+        mainState: mainStateKeyPair.publicKey,
+        lstMint: new PublicKey(WSOL_TOKEN_MINT),
+        vaultLstAccount: vaultWSolAta,
+        depositor: depositorUserKeyPair.publicKey,
+        depositorLstAccount: depositorAtaWSol,
+        mpsolMint: shareTokenKeyPair.publicKey,
+        depositorMpsolAccount: depositorMpSolAta,
+      })
+
+    try {
+      await stakeTx.simulate()
+    } catch (ex) {
+      console.error(ex)
+      throw (ex)
+    }
+    await stakeTx.signers([depositorUserKeyPair]).rpc()
+  }
+
+  return { mainStateKeyPair, vaultAtaAuth, depositorMpSolAta }
+}
+
+// config for 0hs waiting time
+async function config0hsWaitTime(mainStateKeyPair: Keypair) {
+  console.log("config, 0hs wait time")
+  let configTx = await program.methods.configureMainVault({
+    unstakeTicketWaitingHours: 0,
+    treasuryMpsolAccount: null, // null => None => No change
+    performanceFeeBp: null, // null => None => No change
+  }
+  ).accounts({
+    admin: wallet.publicKey,
+    mainState: mainStateKeyPair.publicKey,
+  })
+
+  // // uncomment to show tx simulation program log
+  // {
+  //   console.log("configureMainVault.simulate()")
+  //   try {
+  //     let result = await configTx.simulate()
+  //     console.log(result)
+  //   }
+  //   catch (ex) {
+  //     console.log(ex)
+  //   }
+  // }
+
+  // execute
+  await configTx.rpc()
 }
 
 
@@ -222,116 +363,24 @@ describe("mp-sol-restaking", () => {
 
   it("main path testing", async () => {
 
-    // ----------------------
-    // initialize main state
-    // ----------------------
-    {
-      const tx = await program.methods.initialize(
-        operatorAuthKeyPair.publicKey, strategyRebalancerAuthKeyPair.publicKey
-      )
-        .accounts({
-          admin: wallet.publicKey,
-          mainState: mainStateKeyPair.publicKey,
-          mpsolTokenMint: mpsolTokenMintKeyPair.publicKey,
-        })
-        .signers([mainStateKeyPair, mpsolTokenMintKeyPair]) // note: provider.wallet is automatically included as payer
-        .rpc();
-      //console.log("Your transaction signature", tx);
-    }
-
-    // check main state
-    const mainState = await program.account.mainVaultState.fetch(mainStateKeyPair.publicKey);
-    expect(mainState.admin).to.eql(wallet.publicKey);
-    expect(mainState.mpsolMint).to.eql(mpsolTokenMintKeyPair.publicKey);
-    expect(mainState.operatorAuth).to.eql(operatorAuthKeyPair.publicKey);
-    expect(mainState.strategyRebalancerAuth).to.eql(strategyRebalancerAuthKeyPair.publicKey);
-
-    const [mainVaultMintAuth, mainVaultMintAuthBump] =
-      PublicKey.findProgramAddressSync(
-        [
-          mainStateKeyPair.publicKey.toBuffer(),
-          idlConstant(program.idl, "mainVaultMintAuthSeed")
-        ],
-        program.programId
-      )
-
-    const decodedMint = await getMint(provider.connection, mpsolTokenMintKeyPair.publicKey)
-    expect(decodedMint.decimals).to.eql(9);
-    expect(decodedMint.mintAuthority).to.eql(mainVaultMintAuth);
-    expect(decodedMint.freezeAuthority).to.eql(mainVaultMintAuth);
-
-    // create depositor mpsol ATA account
-    let depositorMpSolAta = await createAta(provider, wallet, mpsolTokenMintKeyPair.publicKey, depositorUserKeyPair.publicKey)
-
-    // compute common PDAs
-    const [vaultAtaAuth, vaultAtaAuthBump] = PublicKey.findProgramAddressSync(
-      [mainStateKeyPair.publicKey.toBuffer(), idlConstant(program.idl, "vaultsAtaAuthSeed")]
-      , program.programId);
-
-    // ------------------------------
-    // create wSOL secondary vault
-    // ------------------------------
-    let wSolSecondaryStateAddress =
-      await testCreateSecondaryVault("wSOL", WSOL_TOKEN_MINT);
-
-    let amountWsolDeposited = new BN(1e11.toFixed())
-    //let depositorAtaWSol = await mintTokens(provider, wallet, new PublicKey(WSOL_TOKEN_MINT), depositorUserKeyPair.publicKey, amountWsolDeposited.toNumber());
+    // wrap some SOL for depositorUserKeyPair
+    let amountWsol = new BN(20e11.toFixed())
     let depositorAtaWSol = await createAta(provider, wallet, new PublicKey(WSOL_TOKEN_MINT), depositorUserKeyPair.publicKey)
     let instructions = [
       // transfer SOL to ATA then convert to wSOL balance
       anchor.web3.SystemProgram.transfer({
         fromPubkey: wallet.publicKey,
         toPubkey: depositorAtaWSol,
-        lamports: amountWsolDeposited.toNumber() + 1e9,
+        lamports: amountWsol.toNumber() + 1e9,
       }),
       // sync wrapped SOL balance
       createSyncNativeInstruction(depositorAtaWSol)
     ];
     await sendTx(provider, wallet, instructions)
 
-    // test wSOL update price (simple, always 1)
-    {
-      const method = testGetUpdateVaultPriceMethod("wSOL", WSOL_TOKEN_MINT);
-      await method.rpc();
-      let wSolSecondaryVaultState = await program.account.secondaryVaultState.fetch(wSolSecondaryStateAddress)
-      expect(wSolSecondaryVaultState.lstSolPriceTimestamp.toNumber()).to.greaterThanOrEqual(new Date().getTime() / 1000 - 2);
-      expect(wSolSecondaryVaultState.lstSolPriceP32.toString()).to.eql(TWO_POW_32);
-    }
-
-    console.log("test wSOL deposit")
-    {
-      // enable deposits in Wsol vault
-      await program.methods.configureSecondaryVault({ depositsDisabled: false })
-        .accounts({
-          admin: wallet.publicKey,
-          mainState: mainStateKeyPair.publicKey,
-          lstMint: new PublicKey(WSOL_TOKEN_MINT),
-        })
-        .rpc()
-
-      const vaultWSolAta = await getAssociatedTokenAddressSync(
-        new PublicKey(WSOL_TOKEN_MINT), vaultAtaAuth, true);
-
-      let stakeTx = await program.methods
-        .stake(amountWsolDeposited)
-        .accounts({
-          mainState: mainStateKeyPair.publicKey,
-          lstMint: new PublicKey(WSOL_TOKEN_MINT),
-          vaultLstAccount: vaultWSolAta,
-          depositor: depositorUserKeyPair.publicKey,
-          depositorLstAccount: depositorAtaWSol,
-          mpsolMint: mpsolTokenMintKeyPair.publicKey,
-          depositorMpsolAccount: depositorMpSolAta,
-        })
-        
-      try {
-        await stakeTx.simulate()
-      } catch (ex) {
-        console.error(ex)
-        throw(ex)
-      }
-      await stakeTx.signers([depositorUserKeyPair]).rpc()
-    }
+    // create and basic tests of main state
+    const mpsolTokenMintKeyPair = Keypair.generate()
+    const { mainStateKeyPair, vaultAtaAuth, depositorMpSolAta } = await createAndTestMainState(mpsolTokenMintKeyPair);
 
     // ------------------------------
     // stake SOL and get some mSOL --- NOPE: we need to clone all marinade state accounts for this to work
@@ -361,7 +410,7 @@ describe("mp-sol-restaking", () => {
     // create Marinade mSol secondary vault
     // ------------------------------
     let marinadeSecondaryVaultStateAddress =
-      await testCreateSecondaryVault("mSOL", MARINADE_MSOL_MINT
+      await testCreateSecondaryVault(mainStateKeyPair, "mSOL", MARINADE_MSOL_MINT
       );
 
     // test mSOL secondary vault update price
@@ -381,7 +430,7 @@ describe("mp-sol-restaking", () => {
 
       {
         // 2nd call UpdateVaultPriceMethod for marinadeSecondaryVaultStateAddress
-        const method = testGetUpdateVaultPriceMethod("mSOL", MARINADE_MSOL_MINT)
+        const method = testGetUpdateVaultPriceMethod(mainStateKeyPair, "mSOL", MARINADE_MSOL_MINT)
         const withRemainingAccounts = method.remainingAccounts([{
           pubkey: marinadeStatePubKey, isSigner: false, isWritable: false
         }]);
@@ -432,7 +481,7 @@ describe("mp-sol-restaking", () => {
       try {
         console.log("stakeTx.simulate()")
         await stakeTx.simulate()
-        expect(false, "stakeTx.rpc() should throw");
+        throw new Error("stakeTx.rpc() should throw");
       }
       catch (ex) {
         // console.log("simulate throw ex:", ex)
@@ -476,7 +525,7 @@ describe("mp-sol-restaking", () => {
         solValueDeposited.mul(preMpSolMintSupply).div(mainStatePre.backingSolValue);
       let postMpSolBalance = new BN(await getTokenAccountBalance(provider, depositorMpSolAta))
       let mpSolReceived = postMpSolBalance.sub(prevMpSolBalance);
-        expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.toString());
+      expect(mpSolReceived.toString()).to.eql(correspondingMpSolAmount.toString());
 
       // check secondary vault state after stake
       const secondaryVaultState = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);
@@ -498,7 +547,7 @@ describe("mp-sol-restaking", () => {
     // create JitoSOL secondary vault
     // ------------------------------
     let jitoSolSecondaryVaultStateAddress =
-      await testCreateSecondaryVault("JitoSOL", JITO_SOL_TOKEN_MINT
+      await testCreateSecondaryVault(mainStateKeyPair, "JitoSOL", JITO_SOL_TOKEN_MINT
       );
 
     // test SPl-stake-pool update price (using jitoSOL SPL-stake-pool as example)
@@ -510,7 +559,7 @@ describe("mp-sol-restaking", () => {
       console.log("jitoSOL price via SDK", formatPrice32p(sdkComputedPrice.toString()))
 
       // 2nd call UpdateVaultPriceMethod for jitoSolSecondaryVaultStateAddress
-      const method = testGetUpdateVaultPriceMethod("jitoSOL", JITO_SOL_TOKEN_MINT)
+      const method = testGetUpdateVaultPriceMethod(mainStateKeyPair, "jitoSOL", JITO_SOL_TOKEN_MINT)
       const withRemainingAccounts = method.remainingAccounts([{
         pubkey: jitoSolSplStakePoolStatePubKey, isSigner: false, isWritable: false
       }]);
@@ -615,42 +664,63 @@ describe("mp-sol-restaking", () => {
 
     {
       // test unstake, with the default 48hs wait time
-      let newTicketAccount1 = await testCreate1e10UnstakeTicket(depositorMpSolAta, 48);
+      let newTicketAccount1 = await testCreate1e10UnstakeTicket(mainStateKeyPair, depositorMpSolAta, 48);
     }
 
+    // --------------------
     // test unstake & claim
+    // --------------------
+
+    // test scenario with "fake" main-stake, vault & ticket
     {
-      // config for 0hs waiting time
-      {
-        console.log("config, 0hs wait time")
-        let configTx = await program.methods.configureMainVault({
-          unstakeTicketWaitingHours: 0,
-          treasuryMpsolAccount: null, // null => None => No change
-          performanceFeeBp: null, // null => None => No change
-        }
-        ).accounts({
-          admin: wallet.publicKey,
+      const fakeMpSolMint = new Keypair();
+      console.log("create fake main state")
+      const {
+        mainStateKeyPair: fakeMainState,
+        depositorMpSolAta: depositorFakeMpSolAta } =
+        await createAndTestMainState(fakeMpSolMint)
+      // create a "fake" ticket
+      await config0hsWaitTime(fakeMainState);
+      console.log("create fake ticket")
+      const fakeTicket = await testCreate1e10UnstakeTicket(fakeMainState, depositorFakeMpSolAta, 0);
+      
+      let amountSolClaimed = new BN(1e9)
+      console.log("try to claim fake ticket on real vaults", amountSolClaimed.toString())
+      const vaultWSolAta = await getAssociatedTokenAddressSync(
+        new PublicKey(WSOL_TOKEN_MINT), vaultAtaAuth, true);
+      let claimTx = await program.methods.ticketClaim(amountSolClaimed)
+        .accounts({
           mainState: mainStateKeyPair.publicKey,
+          beneficiary: depositorUserKeyPair.publicKey,
+          ticketAccount: fakeTicket.publicKey,
+          lstMint: new PublicKey(WSOL_TOKEN_MINT),
+          beneficiaryLstAccount: depositorAtaWSol,
+          vaultLstAccount: vaultWSolAta
         })
 
-        // // uncomment to show tx simulation program log
-        // {
-        //   console.log("configureMainVault.simulate()")
-        //   try {
-        //     let result = await configTx.simulate()
-        //     console.log(result)
-        //   }
-        //   catch (ex) {
-        //     console.log(ex)
-        //   }
-        // }
-
-        // execute
-        await configTx.rpc()
+      // it should fail 
+      try {
+        console.log("try fake claim()")
+        const result = await claimTx.signers([depositorUserKeyPair]).rpc()
+        console.log(result)
+        throw new Error("fake claim() should throw");
       }
-      // create the ticket
-      const newTicketAccount2 = await testCreate1e10UnstakeTicket(depositorMpSolAta, 0);
+      catch (ex) {
+        // uncomment to show tx simulation program log
+        // console.log("fake claim() result:", ex)
+        expect(JSON.stringify(ex)).to.contain("A has one constraint was violated")
+      }
+
+      // to execute:  
+    }
+
+    // use real main state
+    {
+      await config0hsWaitTime(mainStateKeyPair);
+      console.log("create ticket2")
+      const newTicketAccount2 = await testCreate1e10UnstakeTicket(mainStateKeyPair, depositorMpSolAta, 0);
       const amountSolTicket = new BN(1e10.toFixed())
+
 
       // claim 1/3
       {
