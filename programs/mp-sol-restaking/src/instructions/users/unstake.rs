@@ -28,18 +28,19 @@ pub struct Unstake<'info> {
 }
 
 pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
-    // check mpsol_amount > MIN_MOVEMENT_LAMPORTS
-    require_gte!(
-        mpsol_amount,
-        MIN_MOVEMENT_LAMPORTS,
-        ErrorCode::UnstakeAmountToSmall
-    );
 
     // compute the sol value of the mpsol to burn
     let ticket_sol_value = mpsol_amount_to_sol_value(
         mpsol_amount,
         ctx.accounts.main_state.backing_sol_value,
         ctx.accounts.mpsol_mint.supply,
+    );
+
+    // check sol_amount > MIN_MOVEMENT_LAMPORTS
+    require_gte!(
+        ticket_sol_value,
+        MIN_MOVEMENT_LAMPORTS,
+        ErrorCode::UnstakeAmountTooSmall
     );
 
     // -------

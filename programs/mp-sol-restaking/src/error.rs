@@ -46,7 +46,7 @@ pub enum ErrorCode {
     InvalidStoredLstPrice,
 
     #[msg("Unstake amount too small")]
-    UnstakeAmountToSmall, 
+    UnstakeAmountTooSmall, 
 
     #[msg("Not enough SOL value in ticket ")]
     NotEnoughSolValueInTicket,

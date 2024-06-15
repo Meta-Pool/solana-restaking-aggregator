@@ -81,7 +81,7 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
         require_gte!(
             withdraw_sol_value_amount,
             MIN_MOVEMENT_LAMPORTS,
-            ErrorCode::UnstakeAmountToSmall
+            ErrorCode::UnstakeAmountTooSmall
         );
     }
 
