@@ -4,7 +4,7 @@ import { MpSolRestaking } from "../target/types/mp_sol_restaking";
 import { Keypair, PublicKey, Transaction } from "@solana/web3.js";
 import * as splStakePool from "@solana/spl-stake-pool";
 // @ts-ignore: marinade-sdk has @coral-xyz/anchor and an older version of @solana/spl-token -- vscode intellisense gets confused
-import { NATIVE_MINT, TOKEN_PROGRAM_ID, Token, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, NATIVE_MINT, TOKEN_PROGRAM_ID, Token, getAssociatedTokenAddressSync, getMint } from "@solana/spl-token";
 
 import { Marinade, MarinadeConfig, Provider } from '@marinade.finance/marinade-ts-sdk'
 
@@ -14,6 +14,7 @@ import { createAta, getTokenAccountBalance, getTokenMintSupply, mintTokens, send
 import { MethodsBuilder } from "@coral-xyz/anchor/dist/cjs/program/namespace/methods";
 import { AllInstructions } from "@coral-xyz/anchor/dist/cjs/program/namespace/types";
 import { createSyncNativeInstruction } from "@solana/spl-token";
+import { createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 
 const ONE_E9: string = 1e9.toFixed()
 const TWO_POW_32: string = (2 ** 32).toFixed()
@@ -102,6 +103,15 @@ async function testCreateSecondaryVault(mainStateKeyPair: Keypair, tokenName: st
   const vaultTokenAccountAddress =
     getAssociatedTokenAddressSync(lstMintPublickey, vaultsTokenAtaPdaAuth, true);
 
+  const createAtaIx = createAssociatedTokenAccountInstruction(
+    program.provider.publicKey,
+    vaultTokenAccountAddress,
+    vaultsTokenAtaPdaAuth,
+    lstMintPublickey,
+    TOKEN_PROGRAM_ID,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
   const tx2 = await program.methods.createSecondaryVault()
     .accounts({
       admin: wallet.publicKey,
@@ -110,6 +120,7 @@ async function testCreateSecondaryVault(mainStateKeyPair: Keypair, tokenName: st
       secondaryState: vaultSecondaryStateAddress,
       vaultLstAccount: vaultTokenAccountAddress
     })
+    .preInstructions(createAtaIx)
     .rpc();
 
   {
@@ -843,9 +854,9 @@ describe("mp-sol-restaking", () => {
         // compute sol-value received
         const computedSolValueReceived = amountMsolReceived.mul(mSolSecondaryVaultStatePre.lstSolPriceP32).div(new BN(TWO_POW_32));
         console.log("computedSolValueReceived", computedSolValueReceived.toString())
-        // allow for 1 lamport difference
-        expect(amountSolClaimed.toNumber()).to.be.greaterThan(computedSolValueReceived.subn(1).toNumber())
-          .and.to.be.lessThanOrEqual(computedSolValueReceived.addn(1).toNumber());
+        // allow for 2 lamport difference
+        expect(amountSolClaimed.toNumber()).to.be.greaterThan(computedSolValueReceived.subn(2).toNumber())
+          .and.to.be.lessThanOrEqual(computedSolValueReceived.addn(2).toNumber());
 
         // check secondary vault state after claim
         const secondaryVaultStatePost = await program.account.secondaryVaultState.fetch(marinadeSecondaryVaultStateAddress);

@@ -44,7 +44,7 @@ pub struct CreateSecondaryVault<'info> {
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
 
-    #[account(init, payer = admin, 
+    #[account( 
         associated_token::mint = lst_mint, 
         associated_token::authority = vaults_ata_pda_auth
     )]
