@@ -64,7 +64,7 @@ pub struct Stake<'info> {
 }
 
 /// amount is an lst amount
-pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
+pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64, ref_code:u32) -> Result<()> {
     // check deposits are enabled in this secondary-vault
     require_eq!(
         ctx.accounts.vault_state.deposits_disabled,
@@ -151,6 +151,7 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64) -> Result<()> {
 
     emit!(crate::events::StakeEvent {
         main_state: ctx.accounts.main_state.key(),
+        ref_code,
         depositor: ctx.accounts.depositor.key(),
         lst_mint: ctx.accounts.lst_mint.key(),
         lst_amount,

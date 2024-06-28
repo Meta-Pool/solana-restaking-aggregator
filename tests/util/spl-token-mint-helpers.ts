@@ -81,6 +81,12 @@ export async function sendTx(provider: Provider, wallet: any, instructions: Tran
     // } catch (ex) {
     //     console.log(ex)
     // }
+    try {
+        await provider.simulate(tx);
+    }
+    catch(ex){
+        console.log("sendTx err", ex)
+    }
     const txHash = await provider.sendAndConfirm(tx);
     //console.log("Transaction signature:", signature);
     return txHash
@@ -112,8 +118,8 @@ export async function mintTokens(provider: Provider, wallet: any, mint: PublicKe
     );
 
     console.log("send and confirm mint-to");
-    // Send and confirm the transaction
-    sendTx(provider, wallet, instructions)
+    // simulate, send and confirm the transaction
+    await sendTx(provider, wallet, instructions)
 
     console.log(`Minted ${amount} tokens to ${recipient}`);
 

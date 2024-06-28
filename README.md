@@ -7,7 +7,9 @@ reference doc: https://docs.google.com/document/d/1LIU1ikWCmLfCvQsNjb4_iSgXcEOAg
 ### Tests
 
     # only once, to gather accounts for test-validator's genesis
-    bash test-genesis/generate.sh
+    cd test-genesis
+    bash generate.sh
+    cd ..
 
     # launch tests 
     anchor test

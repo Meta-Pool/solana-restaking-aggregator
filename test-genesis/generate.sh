@@ -1,8 +1,8 @@
 LOCAL_ADDRESS=$(echo ~/.config/solana/id.json)
 
 # initial fetch commands of code & data for test-validator-genesis
-mkdir -p test-genesis/generated-data
-cd test-genesis/generated-data
+mkdir -p generated-data
+cd generated-data
 
 # USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 # solana account -u m --output json $USDC_MINT >$USDC_MINT.json
@@ -20,7 +20,7 @@ cd -
 
 # MARINADE_PROGRAM_DATA=$(npx ts-node test-genesis/get-program-data.ts $MARINADE_PROGRAM)
 # solana account -u m $MARINADE_PROGRAM_DATA -o test-genesis/generated-data/marinade.so 
-# ls -l test-genesis/generated-data
+# ls -l generated-data
 
-npx ts-node test-genesis/take-test-mint-auth.ts $MSOL_MINT
-npx ts-node test-genesis/take-test-mint-auth.ts $JITOSOL_MINT
+npx ts-node take-test-mint-auth.ts $MSOL_MINT
+npx ts-node take-test-mint-auth.ts $JITOSOL_MINT

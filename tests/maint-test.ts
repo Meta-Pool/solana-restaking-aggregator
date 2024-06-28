@@ -315,7 +315,7 @@ async function createAndTestMainState(shareTokenKeyPair: Keypair): Promise<
       new PublicKey(WSOL_TOKEN_MINT), depositorUserKeyPair.publicKey, true);
 
     let stakeTx = await program.methods
-      .stake(amountWsolDeposited)
+      .stake(amountWsolDeposited, 0)
       .accounts({
         mainState: mainStateKeyPair.publicKey,
         lstMint: new PublicKey(WSOL_TOKEN_MINT),
@@ -468,7 +468,7 @@ describe("mp-sol-restaking", () => {
       // create ix to deposit the mSOL in the vault
       let amountMsolDeposited = new BN(1e12.toFixed())
       let stakeTx = await program.methods
-        .stake(amountMsolDeposited)
+        .stake(amountMsolDeposited, 0)
         .accounts({
           mainState: mainStateKeyPair.publicKey,
           lstMint: new PublicKey(MARINADE_MSOL_MINT),
@@ -612,7 +612,7 @@ describe("mp-sol-restaking", () => {
 
         let amountJitoSolDeposited = new BN(1e11.toFixed())
         let stakeTx = await program.methods
-          .stake(amountJitoSolDeposited)
+          .stake(amountJitoSolDeposited, 0)
           .accounts({
             mainState: mainStateKeyPair.publicKey,
             lstMint: new PublicKey(JITO_SOL_TOKEN_MINT),

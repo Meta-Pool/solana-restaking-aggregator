@@ -57,7 +57,7 @@ async function take_test_mint_auth(mintAddress: string) {
     let localWalletPrivatekey: number[] = JSON.parse(fs.readFileSync(localWalletFile).toString())
     const localWalletKeypair = Keypair.fromSecretKey(Buffer.from(localWalletPrivatekey))
 
-    let dumpFile = path.join("test-genesis","generated-data", mintAddress) + ".json"
+    let dumpFile = path.join("generated-data", mintAddress) + ".json"
     let accountInfoJsonDump = JSON.parse(fs.readFileSync(dumpFile).toString()) as AccountJsonDump
     // console.log(accountInfoJsonDump)
     // console.log(TOKEN_PROGRAM_ID.toBase58())
