@@ -6,6 +6,7 @@ pub struct ConfigureMainVaultValues {
     unstake_ticket_waiting_hours: Option<u16>,
     performance_fee_bp: Option<u16>,
     treasury_mpsol_account: Option<Pubkey>,
+    new_admin_pubkey: Option<Pubkey>,
 }
 
 #[derive(Accounts)]
@@ -30,6 +31,9 @@ pub fn handle_configure_main_vault(
     if let Some(performance_fee_bp) = values.performance_fee_bp {
         require_gte!(MAX_PERFORMANCE_FEE_BP, performance_fee_bp, ErrorCode::PerformanceFeeTooHigh); 
         ctx.accounts.main_state.performance_fee_bp = performance_fee_bp;
+    }
+    if let Some(new_admin_pubkey) = values.new_admin_pubkey {
+        ctx.accounts.main_state.admin = new_admin_pubkey;
     }
     Ok(())
 }

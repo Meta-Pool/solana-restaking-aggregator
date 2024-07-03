@@ -345,6 +345,7 @@ async function config0hsWaitTime(mainStateKeyPair: Keypair) {
     unstakeTicketWaitingHours: 0,
     treasuryMpsolAccount: null, // null => None => No change
     performanceFeeBp: null, // null => None => No change
+    newAdminPubkey: null, // null => None => No change
   }
   ).accounts({
     admin: wallet.publicKey,
