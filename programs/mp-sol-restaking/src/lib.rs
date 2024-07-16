@@ -58,8 +58,16 @@ pub mod mp_sol_restaking {
     ) -> Result<()> {
         handle_update_attached_strat_lst_amount(ctx)
     }
+
     pub fn update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
         handle_update_vault_token_sol_price(ctx)
+    }
+
+    pub fn update_vault_ticket_target(
+        ctx: Context<UpdateVaultTicketTarget>,
+        new_ticket_target_sol_amount: u64,
+    ) -> Result<()> {
+        handle_update_vault_ticket_target(ctx, new_ticket_target_sol_amount)
     }
 
     // ------------------
