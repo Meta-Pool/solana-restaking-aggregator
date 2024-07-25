@@ -1,5 +1,4 @@
 use crate::{
-    state::external::common_vault_strategy_state::CommonVaultStrategyState,
     state::{MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry},
 };
 use anchor_lang::prelude::*;
@@ -33,7 +32,7 @@ pub struct AttachCommonStrategyState<'info> {
     pub vault_state: Account<'info, SecondaryVaultState>,
 
     #[account(owner = strategy_program_code.key())]
-    pub common_strategy_state: Account<'info, CommonVaultStrategyState>,
+    pub common_strategy_state: UncheckedAccount<'info>,
 
     /// account to be created
     #[account(init, payer = admin, space = 8 + VaultStrategyRelationEntry::INIT_SPACE,

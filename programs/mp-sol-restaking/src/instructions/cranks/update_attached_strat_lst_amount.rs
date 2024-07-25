@@ -1,11 +1,12 @@
 use crate::{
     constants::*, error::ErrorCode,
-    external::common_vault_strategy_state::CommonVaultStrategyState,
+    external::common_strategy_state::CommonStrategyState,
     MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
 use shared_lib::{apply_bp, lst_amount_to_sol_value, sol_value_to_mpsol_amount};
+use ::borsh::BorshDeserialize;
 
 #[derive(Accounts)]
 /// permissionless
@@ -43,8 +44,8 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     pub vault_strategy_relation_entry: Account<'info, VaultStrategyRelationEntry>,
 
     /// must be the one mentioned in vault_strategy_relation_entry
-    #[account( has_one = lst_mint )]
-    pub common_strategy_state: Account<'info, CommonVaultStrategyState>,
+    /// CHECK: external acc manually deserialized
+    pub common_strategy_state: UncheckedAccount<'info>,
 
     #[account(mut, mint::authority = mpsol_mint_authority)]
     pub mpsol_mint: Box<Account<'info, Mint>>,
@@ -76,7 +77,11 @@ pub fn handle_update_attached_strat_lst_amount(
         .vault_strategy_relation_entry
         .last_read_strat_lst_amount;
 
-    let strat_reported_lst_amount = ctx.accounts.common_strategy_state.strat_total_lst_amount;
+    // read from external strategy state
+    let mut data_slice = &ctx.accounts.common_strategy_state.data.borrow()[..];
+    let common_strategy_state: CommonStrategyState = CommonStrategyState::deserialize(&mut data_slice)?;
+    require_keys_eq!(common_strategy_state.lst_mint, ctx.accounts.lst_mint.key());
+    let strat_reported_lst_amount = common_strategy_state.strat_total_lst_amount;
 
     let (profit, slashing) = {
         // Phase 2. ?
