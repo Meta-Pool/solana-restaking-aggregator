@@ -70,6 +70,12 @@ pub enum ErrorCode {
     InvalidTreasuryMpsolAccount,
 
     #[msg("Performance Fee Too High")]
-    PerformanceFeeTooHigh
+    PerformanceFeeTooHigh,
+
+    #[msg("Err deserializing common strategy state")]
+    ErrDeserializingCommonStrategyState,
+
+    #[msg("new strategy lst amount should be 0")]
+    NewStrategyLstAmountShouldBeZero
 }
 

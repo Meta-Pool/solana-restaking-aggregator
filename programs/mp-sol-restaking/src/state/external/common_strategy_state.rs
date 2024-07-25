@@ -1,6 +1,6 @@
-use anchor_lang::solana_program::pubkey::Pubkey;
+use anchor_lang::{error, prelude::AccountInfo, solana_program::pubkey::Pubkey, Result};
 use borsh::{BorshDeserialize, BorshSerialize};
-
+use crate::error::ErrorCode::ErrDeserializingCommonStrategyState;
 // EXTERNAL state, belonging to strategy-programs
 // Note for V2: Dual-LST strategies:
 // A dual-token strategy-program must create 2 CommonVaultStrategyStates
@@ -40,4 +40,10 @@ pub const STRAT_AUTHORITY_SEED: &'static [u8] = b"authority";
 //    ,stratProgramAddress);
 // const [stratAta, stratAtaBump] = PublicKey.findProgramAddressSync(
 //   [stratAuth.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), lstMint.toBuffer(),
-//    ,ASSOCIATED_TOKEN_PROGRAM_ID);
+//    ,&ASSOCIATED_TOKEN_PROGRAM_ID]);
+
+/// deserialize common_strategy_state: &AccountInfo
+pub fn deserialize(common_strategy_state: &AccountInfo)-> Result<CommonStrategyState> {
+    let mut data_slice = &common_strategy_state.data.borrow()[..];
+    CommonStrategyState::deserialize(&mut data_slice).map_err(|_err|{error!(ErrDeserializingCommonStrategyState)})
+}
