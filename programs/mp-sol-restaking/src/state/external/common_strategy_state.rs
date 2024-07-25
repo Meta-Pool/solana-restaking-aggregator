@@ -8,6 +8,8 @@ use crate::error::ErrorCode::ErrDeserializingCommonStrategyState;
 #[derive(Clone, Debug, BorshDeserialize, BorshSerialize, PartialEq)]
 pub struct CommonStrategyState {
 
+    pub discriminator: [u8; 8],
+
     pub lst_mint: Pubkey,
 
     // total lst in this strategy

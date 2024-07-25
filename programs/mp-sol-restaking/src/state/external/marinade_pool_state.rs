@@ -7,7 +7,7 @@ pub const MARINADE_STATE_ADDRESS: Pubkey = pubkey!("8szGkuLTAux9XMgZ2vtY39jVSowE
 
 #[derive(Clone, Debug, BorshDeserialize, BorshSerialize, PartialEq)]
 pub struct MarinadeState {
-    pub discriminant: [u8; 8],
+    pub discriminator: [u8; 8],
     pub msol_mint: Pubkey,
     pub admin_authority: Pubkey,
     pub operational_sol_account: Pubkey,
