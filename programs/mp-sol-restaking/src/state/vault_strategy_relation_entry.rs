@@ -23,10 +23,10 @@ pub struct VaultStrategyRelationEntry {
     /// strategy program code, owner of common_strategy_state
     pub strategy_program_code: Pubkey,
     
-    /// target amount for this strat state
-    /// set by DAO voting.
-    /// if 0 => only-withdraw mode, the strat should be winding_down
-    pub lst_amount_target: u64,
+    /// target amount for the next withdraw
+    /// the strat should wind-down positions so this amount can be withdrawn
+    /// once withdrawn (call to strat-program) and in the same tx, set this value to zero 
+    pub next_withdraw_lst_amount: u64,
 
     /// "tickets_target_sol_amount" is set by the ticket-fulfiller crank, so the strat removes tokens from external-programs
     /// increasing "locally_stored_amount" until it covers "tickets_target_sol_amount"

@@ -64,7 +64,7 @@ pub fn handle_attach_common_strategy_state(ctx: Context<AttachCommonStrategyStat
             lst_mint: ctx.accounts.lst_mint.key(),
             common_strategy_state: ctx.accounts.common_strategy_state.key(),
             strategy_program_code: ctx.accounts.strategy_program_code.key(),
-            lst_amount_target: 0,
+            next_withdraw_lst_amount: 0,
             tickets_target_sol_amount: 0,
             last_read_strat_lst_amount: 0,
             last_read_strat_lst_timestamp: 0,
