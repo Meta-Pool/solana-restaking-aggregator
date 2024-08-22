@@ -78,5 +78,7 @@ pub struct GetLstFromStratEvent {
     pub main_state: Pubkey,
     pub lst_mint: Pubkey,
     pub vault_strategy_relation_entry: Pubkey,
+    pub desired_amount: u64,
+    pub existent_amount: u64,
     pub lst_amount: u64,
 }

@@ -79,7 +79,10 @@ pub enum ErrorCode {
     NewStrategyLstAmountShouldBeZero,
 
     #[msg("amount is 0")]
-    AmountIsZero
+    AmountIsZero,
+
+    #[msg("existing amount is 0")]
+    ExistingAmountIsZero,
 
 }
 

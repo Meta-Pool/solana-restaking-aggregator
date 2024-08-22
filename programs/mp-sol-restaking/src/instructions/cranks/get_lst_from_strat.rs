@@ -86,8 +86,13 @@ pub struct GetLstFromStrat<'info> {
 
 pub fn handle_get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
 
-    let lst_amount = ctx.accounts.vault_strategy_relation_entry.next_withdraw_lst_amount;
-    require_gt!(lst_amount,0, ErrorCode::AmountIsZero);
+    let desired_amount = ctx.accounts.vault_strategy_relation_entry.next_withdraw_lst_amount;
+    require_gt!(desired_amount, 0, ErrorCode::AmountIsZero);
+
+    let existent_amount = ctx.accounts.lst_withdraw_account.amount;
+    require_gt!(existent_amount, 0, ErrorCode::ExistingAmountIsZero);
+
+    let lst_amount = std::cmp::min(existent_amount, desired_amount);
 
     // Transfer tokens from strat deposited temp lst account to vault account
     {
@@ -108,12 +113,14 @@ pub fn handle_get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
     ctx.accounts.vault_state.in_strategies_amount -= lst_amount;
 
     // reset field next_withdraw_lst_amount
-    ctx.accounts.vault_strategy_relation_entry.next_withdraw_lst_amount = 0;
+    ctx.accounts.vault_strategy_relation_entry.next_withdraw_lst_amount -= lst_amount;
 
     emit!(crate::events::GetLstFromStratEvent {
         main_state: ctx.accounts.main_state.key(),
         lst_mint: ctx.accounts.lst_mint.key(),
         vault_strategy_relation_entry: ctx.accounts.vault_strategy_relation_entry.key(),
+        desired_amount,
+        existent_amount,
         lst_amount,
     });
     
