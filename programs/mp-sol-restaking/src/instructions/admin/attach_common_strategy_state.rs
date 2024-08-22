@@ -1,4 +1,4 @@
-use crate::{external::common_strategy_state, state::{MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry}};
+use crate::{external::common_strategy_state, state::{MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry}, VAULT_STRAT_ENTRY_SEED};
 use anchor_lang::prelude::*;
 
 /// Note: Before adding a strategy
@@ -36,7 +36,7 @@ pub struct AttachCommonStrategyState<'info> {
     /// account to be created
     #[account(init, payer = admin, space = 8 + VaultStrategyRelationEntry::INIT_SPACE,
         seeds = [
-            &vault_state.key().to_bytes(),
+            VAULT_STRAT_ENTRY_SEED,
             &common_strategy_state.key().to_bytes(),
         ],
         bump

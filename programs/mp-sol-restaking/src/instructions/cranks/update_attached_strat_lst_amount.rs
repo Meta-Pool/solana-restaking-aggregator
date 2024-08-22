@@ -35,7 +35,7 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     #[account(
         has_one = common_strategy_state,
         seeds = [
-            &vault_state.key().to_bytes(),
+            VAULT_STRAT_ENTRY_SEED,
             &common_strategy_state.key().to_bytes(),
         ],
         bump
