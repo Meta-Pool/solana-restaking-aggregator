@@ -67,8 +67,8 @@ pub struct GetLstFromStrat<'info> {
     /// for temp-ATA to move lst from strat back to the vault 
     #[account(
         seeds = [
+            crate::VAULT_STRAT_WITHDRAW_ATA_AUTH_SEED,
             &common_strategy_state.key().to_bytes(),
-            crate::VAULT_STRAT_WITHDRAW_ATA_AUTH_SEED
         ],
         bump
     )]

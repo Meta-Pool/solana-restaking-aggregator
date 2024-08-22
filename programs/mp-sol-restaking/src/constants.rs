@@ -9,7 +9,7 @@ pub const MAIN_VAULT_MINT_AUTH_SEED: &'static [u8] = b"main-mint";
 #[constant]
 pub const VAULTS_ATA_AUTH_SEED: &'static [u8] = b"vaults-ata-auth";
 #[constant]
-pub const VAULT_STRAT_WITHDRAW_ATA_AUTH_SEED: &'static [u8] = b"vault-strat-wtd-auth";
+pub const VAULT_STRAT_WITHDRAW_ATA_AUTH_SEED: &'static [u8] = b"lst_withdraw_authority";
 #[constant]
 pub const MIN_MOVEMENT_LAMPORTS: u64 = 1_000_000; // avoid low-amount/rounding attacks
 #[constant]
