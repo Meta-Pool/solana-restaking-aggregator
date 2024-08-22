@@ -31,7 +31,7 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     pub vault_state: Account<'info, SecondaryVaultState>,
 
     /// vault->strat relation entry
-    /// if this account exists, the common_strategy_state was correctly attached to the vault
+    /// if this account exists, the common_strategy_state was correctly attached to the system
     #[account(
         has_one = common_strategy_state,
         seeds = [
