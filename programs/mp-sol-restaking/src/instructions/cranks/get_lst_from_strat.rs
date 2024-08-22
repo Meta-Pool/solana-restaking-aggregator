@@ -109,6 +109,13 @@ pub fn handle_get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
 
     // reset field next_withdraw_lst_amount
     ctx.accounts.vault_strategy_relation_entry.next_withdraw_lst_amount = 0;
+
+    emit!(crate::events::GetLstFromStratEvent {
+        main_state: ctx.accounts.main_state.key(),
+        lst_mint: ctx.accounts.lst_mint.key(),
+        vault_strategy_relation_entry: ctx.accounts.vault_strategy_relation_entry.key(),
+        lst_amount,
+    });
     
     Ok(())
 }

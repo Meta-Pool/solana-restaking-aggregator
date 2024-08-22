@@ -110,5 +110,12 @@ pub fn handle_transfer_lst_to_strat(ctx: Context<TransferLstToStrat>, lst_amount
     // no longer locally stored amount
     ctx.accounts.vault_state.locally_stored_amount -= lst_amount;
 
+    emit!(crate::events::TransferLstToStratEvent {
+        main_state: ctx.accounts.main_state.key(),
+        lst_mint: ctx.accounts.lst_mint.key(),
+        vault_strategy_relation_entry: ctx.accounts.vault_strategy_relation_entry.key(),
+        lst_amount,
+    });
+
     Ok(())
 }
