@@ -32,7 +32,7 @@ pub struct UpdateAttachedStratLstAmount<'info> {
 
     /// vault->strat relation entry
     /// if this account exists, the common_strategy_state was correctly attached to the system
-    #[account(
+    #[account(mut,
         has_one = common_strategy_state,
         seeds = [
             VAULT_STRAT_ENTRY_SEED,
