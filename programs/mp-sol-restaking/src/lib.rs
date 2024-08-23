@@ -70,6 +70,18 @@ pub mod mp_sol_restaking {
         handle_update_vault_ticket_target(ctx, new_ticket_target_sol_amount)
     }
 
+    pub fn get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
+        handle_get_lst_from_strat(ctx)
+    }
+
+    pub fn transfer_lst_to_strat(ctx: Context<TransferLstToStrat>, lst_amount: u64) -> Result<()> {
+        handle_transfer_lst_to_strat(ctx, lst_amount)
+    }
+
+    pub fn set_next_withdraw_amount(ctx: Context<SetNextWithdrawAmount>, lst_amount: u64) -> Result<()> {
+        handle_set_next_withdraw_amount(ctx, lst_amount)
+    }
+
     // ------------------
     // users
     // ------------------

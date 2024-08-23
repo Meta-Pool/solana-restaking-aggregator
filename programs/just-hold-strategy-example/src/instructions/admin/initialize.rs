@@ -43,8 +43,6 @@ pub fn handle_initialize(ctx: Context<Initialize>) -> Result<()> {
     ctx.accounts.strat_state.set_inner(CommonVaultStrategyState {
         lst_mint: ctx.accounts.lst_mint.key(),
         strat_total_lst_amount: 0,
-        locally_stored_amount: 0,
-        in_external_program_amount: 0,
     });
     Ok(())
 }

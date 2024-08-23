@@ -76,6 +76,13 @@ pub enum ErrorCode {
     ErrDeserializingCommonStrategyState,
 
     #[msg("new strategy lst amount should be 0")]
-    NewStrategyLstAmountShouldBeZero
+    NewStrategyLstAmountShouldBeZero,
+
+    #[msg("amount is 0")]
+    AmountIsZero,
+
+    #[msg("existing amount is 0")]
+    ExistingAmountIsZero,
+
 }
 
