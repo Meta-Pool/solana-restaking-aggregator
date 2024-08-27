@@ -6,3 +6,4 @@ node_modules
 test-ledger
 test-genesis/generated-data
 .yarn
+docker-target
