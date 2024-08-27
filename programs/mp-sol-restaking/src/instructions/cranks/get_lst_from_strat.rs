@@ -95,18 +95,21 @@ pub fn handle_get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
     let lst_amount = std::cmp::min(existent_amount, desired_amount);
 
     // Transfer tokens from strat deposited temp lst account to vault account
-    {
-        let transfer_instruction = Transfer {
-            from: ctx.accounts.lst_withdraw_account.to_account_info(),
-            to: ctx.accounts.vault_lst_account.to_account_info(),
-            authority: ctx.accounts.vault_strat_withdraw_auth.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new(
+    anchor_spl::token::transfer( 
+        CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-        );
-        anchor_spl::token::transfer(cpi_ctx, lst_amount)?;
-    }
+            Transfer {
+                from: ctx.accounts.lst_withdraw_account.to_account_info(),
+                to: ctx.accounts.vault_lst_account.to_account_info(),
+                authority: ctx.accounts.vault_strat_withdraw_auth.to_account_info(),
+                },
+            &[&[
+                crate::VAULT_STRAT_WITHDRAW_ATA_AUTH_SEED,
+                &ctx.accounts.common_strategy_state.key().to_bytes(),
+                &[ctx.bumps.vault_strat_withdraw_auth]
+                ]])
+        ,lst_amount)?;
+
     // compute as locally stored amount
     ctx.accounts.vault_state.locally_stored_amount += lst_amount;
     // no longer in strategies

@@ -93,18 +93,21 @@ pub fn handle_transfer_lst_to_strat(ctx: Context<TransferLstToStrat>, lst_amount
     require_gt!(lst_amount,0, ErrorCode::AmountIsZero);
 
     // Transfer tokens from vault to strat lst
-    {
-        let transfer_instruction = Transfer {
-            from: ctx.accounts.vault_lst_account.to_account_info(),
-            to: ctx.accounts.strategy_deposit_account.to_account_info(),
-            authority: ctx.accounts.vaults_ata_pda_auth.to_account_info(),
-        };
-        let cpi_ctx = CpiContext::new(
+    anchor_spl::token::transfer( 
+        CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            transfer_instruction,
-        );
-        anchor_spl::token::transfer(cpi_ctx, lst_amount)?;
-    }
+            Transfer {
+                from: ctx.accounts.vault_lst_account.to_account_info(),
+                to: ctx.accounts.strategy_deposit_account.to_account_info(),
+                authority: ctx.accounts.vaults_ata_pda_auth.to_account_info(),
+            },
+            &[&[
+                &ctx.accounts.main_state.key().to_bytes(),
+                VAULTS_ATA_AUTH_SEED,
+                &[ctx.bumps.vaults_ata_pda_auth]
+                ]])
+        ,lst_amount)?;
+    
     // now in strategies
     ctx.accounts.vault_state.in_strategies_amount += lst_amount;
     // no longer locally stored amount
