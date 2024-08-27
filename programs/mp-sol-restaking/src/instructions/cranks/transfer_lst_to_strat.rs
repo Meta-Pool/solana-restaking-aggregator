@@ -106,7 +106,8 @@ pub fn handle_transfer_lst_to_strat(ctx: Context<TransferLstToStrat>, lst_amount
                 VAULTS_ATA_AUTH_SEED,
                 &[ctx.bumps.vaults_ata_pda_auth]
                 ]])
-        ,lst_amount)?;
+        ,
+        lst_amount)?;
     
     // now in strategies
     ctx.accounts.vault_state.in_strategies_amount += lst_amount;

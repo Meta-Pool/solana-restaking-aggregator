@@ -108,7 +108,8 @@ pub fn handle_get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
                 &ctx.accounts.common_strategy_state.key().to_bytes(),
                 &[ctx.bumps.vault_strat_withdraw_auth]
                 ]])
-        ,lst_amount)?;
+        ,
+        lst_amount)?;
 
     // compute as locally stored amount
     ctx.accounts.vault_state.locally_stored_amount += lst_amount;
