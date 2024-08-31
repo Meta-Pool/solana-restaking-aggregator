@@ -7,12 +7,8 @@ use anchor_spl::token::{TokenAccount, Transfer, Token};
 
 #[derive(Accounts)]
 pub struct GetLstFromStrat<'info> {
-    #[account(has_one = operator_auth)]
-    pub main_state: Account<'info, MainVaultState>,
-
-    // the one in main_state
     #[account()]
-    pub operator_auth: Signer<'info>, 
+    pub main_state: Account<'info, MainVaultState>,
 
     /// CHECK: no need to decode mint
     #[account()]
@@ -39,7 +35,8 @@ pub struct GetLstFromStrat<'info> {
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
 
-    #[account( 
+    #[account(
+        mut,
         associated_token::mint = lst_mint, 
         associated_token::authority = vaults_ata_pda_auth
     )]
