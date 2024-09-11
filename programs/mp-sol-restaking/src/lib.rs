@@ -13,6 +13,20 @@ pub use state::*;
 
 declare_id!("MPSoLoEnfNRFReRZSVH2V8AffSmWSR4dVoBLFm1YpAW");
 
+#[cfg(not(feature = "no-entrypoint"))]
+use solana_security_txt::security_txt;
+#[cfg(not(feature = "no-entrypoint"))]
+security_txt! {
+    name: "Metapool.app Restake Aggregator",
+    project_url: "https://metapool.app",
+    contacts: "link:https://docs.metapool.app,link:https://discord.gg/9DzPZCzzxp",
+    policy: "https://docs.metapool.app/master/security",
+    preferred_languages: "en",
+    source_code: "https://github.com/Meta-Pool/solana-restaking",
+    source_release: "v1.0",
+    auditors: "https://docs.metapool.app/master/security/audits"
+}
+
 #[program]
 pub mod mp_sol_restaking {
     use super::*;

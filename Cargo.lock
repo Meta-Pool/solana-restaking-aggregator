@@ -1298,6 +1298,7 @@ dependencies = [
  "borsh 0.9.3",
  "shared_lib",
  "solana-program",
+ "solana-security-txt",
 ]
 
 [[package]]
