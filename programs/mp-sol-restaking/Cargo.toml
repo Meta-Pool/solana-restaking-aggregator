@@ -18,7 +18,7 @@ idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 
 [dependencies]
 anchor-lang = { workspace = true }
-anchor-spl = { workspace = true }
+anchor-spl = { workspace = true, features = ["metadata"] }
 solana-program = { workspace = true }
 borsh = { workspace = true }
 shared_lib = { path = "../shared-lib" }

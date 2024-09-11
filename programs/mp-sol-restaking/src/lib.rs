@@ -28,6 +28,12 @@ pub mod mp_sol_restaking {
         initialize::handle_initialize(ctx, operator_auth, strategy_rebalancer_auth)
     }
 
+    pub fn init_metadata(
+        ctx: Context<InitMetadata>,
+    ) -> Result<()> {
+        init_metadata::handle_init_metadata(ctx)
+    }
+
     pub fn create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Result<()> {
         create_secondary_vault::handle_create_secondary_vault(ctx)
     }
