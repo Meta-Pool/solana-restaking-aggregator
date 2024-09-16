@@ -79,7 +79,11 @@ pub fn handle_init_metadata(ctx: Context<InitMetadata>) -> Result<()> {
         &signer,
     );
 
-    create_metadata_accounts_v3(metadata_ctx, token_data, false, true, None)?;
+    create_metadata_accounts_v3(metadata_ctx, 
+        token_data, 
+        false, 
+        true, 
+        None)?;
 
     msg!("Token mint created successfully.");
 
