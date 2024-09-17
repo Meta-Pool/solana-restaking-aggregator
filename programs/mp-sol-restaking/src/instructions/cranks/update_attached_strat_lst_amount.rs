@@ -56,7 +56,7 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     )]
     strategy_authority: UncheckedAccount<'info>,
 
-    #[account(mut,
+    #[account(
         associated_token::mint = lst_mint,
         associated_token::authority = strategy_authority,
     )]
@@ -74,7 +74,7 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     pub vault_strat_withdraw_auth: UncheckedAccount<'info>,
 
     /// temp-ATA to move lst from strat back to the vault
-    #[account(mut,
+    #[account(
         associated_token::mint = lst_mint,
         associated_token::authority = vault_strat_withdraw_auth,
     )]
