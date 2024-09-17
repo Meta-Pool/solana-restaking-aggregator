@@ -83,4 +83,7 @@ pub enum ErrorCode {
 
     #[msg("existing amount is 0")]
     ExistingAmountIsZero,
+
+    #[msg("Must withdraw all pending lst")]
+    MustWithdrawAllPendingLst,
 }
