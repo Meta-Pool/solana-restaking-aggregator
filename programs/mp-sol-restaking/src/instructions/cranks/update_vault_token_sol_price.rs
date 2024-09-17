@@ -126,6 +126,7 @@ pub fn internal_update_vault_token_sol_price(
         }
     };
 
+    secondary_state.lst_sol_price_timestamp = Clock::get().unwrap().unix_timestamp as u64;
     // only if price changed
     if new_price_p32 != old_price_p32 {
         //
@@ -149,7 +150,6 @@ pub fn internal_update_vault_token_sol_price(
 
         // update last price and timestamp
         secondary_state.lst_sol_price_p32 = new_price_p32;
-        secondary_state.lst_sol_price_timestamp = Clock::get().unwrap().unix_timestamp as u64;
 
         emit!(crate::events::UpdateVaultTokenSolPriceEvent {
             main_state: main_state.key(),
