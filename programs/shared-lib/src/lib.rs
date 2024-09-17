@@ -26,7 +26,7 @@ pub fn sol_value_to_mpsol_amount(
         mul_div(
             sol_value,
             mpsol_current_supply,
-            main_vault_backing_sol_value
+            main_vault_backing_sol_value,
         )
     }
 }

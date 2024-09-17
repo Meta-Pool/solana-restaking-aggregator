@@ -36,7 +36,11 @@ pub struct Initialize<'info> {
     system_program: Program<'info, System>,
 }
 
-pub fn handle_initialize(ctx: Context<Initialize>, operator_auth:Pubkey, strategy_rebalancer_auth:Pubkey) -> Result<()> {
+pub fn handle_initialize(
+    ctx: Context<Initialize>,
+    operator_auth: Pubkey,
+    strategy_rebalancer_auth: Pubkey,
+) -> Result<()> {
     ctx.accounts.main_state.set_inner(MainVaultState {
         admin: ctx.accounts.admin.key(),
         operator_auth,

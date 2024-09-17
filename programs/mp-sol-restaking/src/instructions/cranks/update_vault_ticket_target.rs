@@ -10,13 +10,13 @@ pub struct UpdateVaultTicketTarget<'info> {
 
     // the one in main_state
     #[account()]
-    pub operator_auth: Signer<'info>, 
+    pub operator_auth: Signer<'info>,
 
     /// CHECK: No auto-deserialization
     #[account()]
     pub lst_mint: UncheckedAccount<'info>,
 
-    // PDA computed from main_state & lst_mint 
+    // PDA computed from main_state & lst_mint
     #[account(mut,
         has_one = lst_mint,
         seeds = [
@@ -26,7 +26,6 @@ pub struct UpdateVaultTicketTarget<'info> {
         bump
     )]
     pub secondary_state: Account<'info, SecondaryVaultState>,
-
 }
 
 pub fn handle_update_vault_ticket_target(

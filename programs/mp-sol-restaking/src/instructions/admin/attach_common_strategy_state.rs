@@ -1,4 +1,8 @@
-use crate::{external::common_strategy_state, state::{MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry}, VAULT_STRAT_ENTRY_SEED};
+use crate::{
+    external::common_strategy_state,
+    state::{MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry},
+    VAULT_STRAT_ENTRY_SEED,
+};
 use anchor_lang::prelude::*;
 
 /// Note: Before adding a strategy
@@ -53,9 +57,14 @@ pub struct AttachCommonStrategyState<'info> {
 pub fn handle_attach_common_strategy_state(ctx: Context<AttachCommonStrategyState>) -> Result<()> {
     // verify
     // read from external strategy state
-    let common_strategy_state = common_strategy_state::deserialize(&mut ctx.accounts.common_strategy_state)?;
+    let common_strategy_state =
+        common_strategy_state::deserialize(&mut ctx.accounts.common_strategy_state)?;
     require_keys_eq!(common_strategy_state.lst_mint, ctx.accounts.lst_mint.key());
-    require_eq!(common_strategy_state.strat_total_lst_amount, 0, crate::error::ErrorCode::NewStrategyLstAmountShouldBeZero);
+    require_eq!(
+        common_strategy_state.strat_total_lst_amount,
+        0,
+        crate::error::ErrorCode::NewStrategyLstAmountShouldBeZero
+    );
 
     ctx.accounts
         .vault_strategy_relation_entry

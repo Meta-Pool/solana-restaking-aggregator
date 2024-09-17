@@ -1,5 +1,5 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
+use borsh::{BorshDeserialize, BorshSerialize};
 
 pub const MARINADE_MSOL_MINT: Pubkey = pubkey!("mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So");
 pub const MARINADE_POOL_PROGRAM: Pubkey = pubkey!("MarBmsSgKXdrN1egZf5sqe1TMai9K1rChYNDJgjq7aD");

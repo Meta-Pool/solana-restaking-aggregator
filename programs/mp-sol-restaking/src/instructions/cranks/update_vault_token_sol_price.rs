@@ -35,15 +35,18 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
-pub fn handle_update_vault_token_sol_price(ctx:  Context<UpdateVaultTokenSolPrice>) -> Result<()> {
-    
+pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
     // obtain lst-state account info if required
     let lst_state = match ctx.accounts.lst_mint.key() {
         // wSol is simple, always 1 - no state required
         WSOL_MINT => None,
         _ => {
             // assume the corresponding marinade state account sent in remaining_accounts
-            require_eq!(ctx.remaining_accounts.len(), 1, ErrorCode::MissingLstStateInRemainingAccounts);
+            require_eq!(
+                ctx.remaining_accounts.len(),
+                1,
+                ErrorCode::MissingLstStateInRemainingAccounts
+            );
             Some(ctx.remaining_accounts[0].to_account_info())
         }
     };
@@ -58,7 +61,7 @@ pub fn handle_update_vault_token_sol_price(ctx:  Context<UpdateVaultTokenSolPric
 pub fn internal_update_vault_token_sol_price(
     main_state: &mut Account<MainVaultState>,
     secondary_state: &mut Account<SecondaryVaultState>,
-    lst_state: Option<AccountInfo>
+    lst_state: Option<AccountInfo>,
 ) -> Result<()> {
     //
     let old_price_p32 = secondary_state.lst_sol_price_p32;
@@ -69,7 +72,8 @@ pub fn internal_update_vault_token_sol_price(
 
         // mSol, read marinade state
         MARINADE_MSOL_MINT => {
-            let lst_state = lst_state.expect("must provide marinade state at remaining_accounts[0]");
+            let lst_state =
+                lst_state.expect("must provide marinade state at remaining_accounts[0]");
             // marinade state address is known, verify
             require_keys_eq!(
                 *lst_state.key,
@@ -89,7 +93,8 @@ pub fn internal_update_vault_token_sol_price(
         _ => {
             // none of the above, try a generic SPL-stake-pool
             // verify owner program & data_len
-            let lst_state = lst_state.expect("must provide spl-stake-pool state at remaining_accounts[0]");
+            let lst_state =
+                lst_state.expect("must provide spl-stake-pool state at remaining_accounts[0]");
             require_keys_eq!(
                 *lst_state.owner,
                 SPL_STAKE_POOL_PROGRAM,

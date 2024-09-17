@@ -1,5 +1,5 @@
-use anchor_lang::prelude::*;
 use crate::common_vault_strategy_state::CommonVaultStrategyState;
+use anchor_lang::prelude::*;
 
 use anchor_spl::token::TokenAccount;
 
@@ -25,11 +25,10 @@ pub struct UpdateLstAmount<'info> {
 
     /// ATA lst account
     #[account(
-        associated_token::mint = lst_mint, 
+        associated_token::mint = lst_mint,
         associated_token::authority = strat_pda_auth
     )]
     pub strat_lst_account: Account<'info, TokenAccount>,
-
 }
 
 pub fn handle_update_lst_amount(ctx: Context<UpdateLstAmount>) -> Result<()> {

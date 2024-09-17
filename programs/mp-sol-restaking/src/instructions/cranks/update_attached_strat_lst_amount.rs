@@ -1,7 +1,6 @@
 use crate::{
-    constants::*, error::ErrorCode,
-    external::common_strategy_state,
-    MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry,
+    constants::*, error::ErrorCode, external::common_strategy_state, MainVaultState,
+    SecondaryVaultState, VaultStrategyRelationEntry,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
@@ -77,7 +76,8 @@ pub fn handle_update_attached_strat_lst_amount(
         .last_read_strat_lst_amount;
 
     // read from external strategy state
-    let common_strategy_state = common_strategy_state::deserialize(&mut ctx.accounts.common_strategy_state)?;
+    let common_strategy_state =
+        common_strategy_state::deserialize(&mut ctx.accounts.common_strategy_state)?;
     require_keys_eq!(common_strategy_state.lst_mint, ctx.accounts.lst_mint.key());
     let strat_reported_lst_amount = common_strategy_state.strat_total_lst_amount;
 

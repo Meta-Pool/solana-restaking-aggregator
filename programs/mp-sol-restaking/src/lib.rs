@@ -42,9 +42,7 @@ pub mod mp_sol_restaking {
         initialize::handle_initialize(ctx, operator_auth, strategy_rebalancer_auth)
     }
 
-    pub fn init_metadata(
-        ctx: Context<InitMetadata>,
-    ) -> Result<()> {
+    pub fn init_metadata(ctx: Context<InitMetadata>) -> Result<()> {
         init_metadata::handle_init_metadata(ctx)
     }
 
@@ -98,7 +96,10 @@ pub mod mp_sol_restaking {
         handle_transfer_lst_to_strat(ctx, lst_amount)
     }
 
-    pub fn set_next_withdraw_amount(ctx: Context<SetNextWithdrawAmount>, lst_amount: u64) -> Result<()> {
+    pub fn set_next_withdraw_amount(
+        ctx: Context<SetNextWithdrawAmount>,
+        lst_amount: u64,
+    ) -> Result<()> {
         handle_set_next_withdraw_amount(ctx, lst_amount)
     }
 

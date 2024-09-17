@@ -4,7 +4,7 @@ pub struct StakeEvent {
     pub main_state: Pubkey,
     pub lst_mint: Pubkey,
     pub depositor: Pubkey,
-    pub ref_code: u32, 
+    pub ref_code: u32,
     pub lst_amount: u64,
     pub deposited_sol_value: u64,
     pub depositor_lst_account: Pubkey,

@@ -10,16 +10,16 @@ pub enum ErrorCode {
     TokenSolPriceIsStale, // 6001 0x1771
 
     #[msg("Deposit amount too small")]
-    DepositAmountToSmall, 
+    DepositAmountToSmall,
 
     #[msg("Withdraw amount too small")]
-    WithdrawAmountTooSmall, 
+    WithdrawAmountTooSmall,
 
     #[msg("not enough tokens in the vault")]
-    NotEnoughTokensInTheVault, 
+    NotEnoughTokensInTheVault,
 
     #[msg("vault at index is not the vault sent in the instruction")]
-    VaultIndexHasDifferentVault, 
+    VaultIndexHasDifferentVault,
 
     #[msg("max whitelisted vaults reached")]
     MaxWhitelistedVaultsReached,
@@ -28,7 +28,7 @@ pub enum ErrorCode {
     InvalidAddingVaultState,
 
     #[msg("Deposit exceeds vault cap")]
-    DepositExceedsVaultCap, 
+    DepositExceedsVaultCap,
 
     #[msg("Incorrect Marinade State Address")]
     IncorrectMarinadeStateAddress,
@@ -46,13 +46,13 @@ pub enum ErrorCode {
     InvalidStoredLstPrice,
 
     #[msg("Unstake amount too small")]
-    UnstakeAmountTooSmall, 
+    UnstakeAmountTooSmall,
 
     #[msg("Not enough SOL value in ticket ")]
     NotEnoughSolValueInTicket,
 
     #[msg("Withdraw amount too small")]
-    WithdrawAmountToSmall, 
+    WithdrawAmountToSmall,
 
     #[msg("Ticket is not due yet")]
     TicketIsNotDueYet,
@@ -83,6 +83,4 @@ pub enum ErrorCode {
 
     #[msg("existing amount is 0")]
     ExistingAmountIsZero,
-
 }
-

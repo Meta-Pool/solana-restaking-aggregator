@@ -1,7 +1,4 @@
-use crate::{
-    constants::*, error::ErrorCode,
-    MainVaultState, VaultStrategyRelationEntry,
-};
+use crate::{constants::*, error::ErrorCode, MainVaultState, VaultStrategyRelationEntry};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -12,7 +9,7 @@ pub struct SetNextWithdrawAmount<'info> {
 
     // the one in main_state
     #[account()]
-    pub operator_auth: Signer<'info>, 
+    pub operator_auth: Signer<'info>,
 
     /// CHECK: no need to decode mint
     #[account()]
@@ -22,8 +19,8 @@ pub struct SetNextWithdrawAmount<'info> {
     /// if this account exists, the common_strategy_state was correctly attached to the system
     #[account(mut,
         has_one = main_state,
-        has_one = lst_mint, 
-        has_one = common_strategy_state, 
+        has_one = lst_mint,
+        has_one = common_strategy_state,
         seeds = [
             VAULT_STRAT_ENTRY_SEED,
             &common_strategy_state.key().to_bytes(),
@@ -38,11 +35,13 @@ pub struct SetNextWithdrawAmount<'info> {
 }
 
 pub fn handle_set_next_withdraw_amount(
-    ctx: Context<SetNextWithdrawAmount>, lst_amount: u64
+    ctx: Context<SetNextWithdrawAmount>,
+    lst_amount: u64,
 ) -> Result<()> {
     require_gt!(lst_amount, 0, ErrorCode::AmountIsZero);
     // set field next_withdraw_lst_amount
-    ctx.accounts.vault_strategy_relation_entry.next_withdraw_lst_amount = lst_amount;
+    ctx.accounts
+        .vault_strategy_relation_entry
+        .next_withdraw_lst_amount = lst_amount;
     Ok(())
 }
-

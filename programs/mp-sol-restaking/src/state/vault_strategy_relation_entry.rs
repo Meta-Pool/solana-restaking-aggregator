@@ -5,7 +5,6 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct VaultStrategyRelationEntry {
-
     pub main_state: Pubkey,
 
     ///  main_state + lst_mint => secondary-vault PDA
@@ -22,10 +21,10 @@ pub struct VaultStrategyRelationEntry {
 
     /// strategy program code, owner of common_strategy_state
     pub strategy_program_code: Pubkey,
-    
+
     /// target amount for the next withdraw
     /// the strat should wind-down positions so this amount can be withdrawn
-    /// once withdrawn (call to strat-program) and in the same tx, set this value to zero 
+    /// once withdrawn (call to strat-program) and in the same tx, set this value to zero
     pub next_withdraw_lst_amount: u64,
 
     /// "tickets_target_sol_amount" is set by the ticket-fulfiller crank, so the strat removes tokens from external-programs
@@ -41,4 +40,3 @@ pub struct VaultStrategyRelationEntry {
     pub last_read_strat_lst_amount: u64,
     pub last_read_strat_lst_timestamp: u64, // last run of strat-price-update
 }
-

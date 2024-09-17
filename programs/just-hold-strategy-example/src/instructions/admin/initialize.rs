@@ -1,8 +1,8 @@
+use crate::constants::*;
+use crate::state::common_vault_strategy_state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use crate::state::common_vault_strategy_state::*;
-use crate::constants::*;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -28,8 +28,8 @@ pub struct Initialize<'info> {
     pub strat_pda_auth: UncheckedAccount<'info>,
 
     /// create an ATA lst account for the strat to store LSTs, auth is strat_pda_auth
-    #[account(init, payer = admin, 
-        associated_token::mint = lst_mint, 
+    #[account(init, payer = admin,
+        associated_token::mint = lst_mint,
         associated_token::authority = strat_pda_auth
     )]
     pub strat_lst_account: Account<'info, TokenAccount>,
@@ -40,9 +40,11 @@ pub struct Initialize<'info> {
 }
 
 pub fn handle_initialize(ctx: Context<Initialize>) -> Result<()> {
-    ctx.accounts.strat_state.set_inner(CommonVaultStrategyState {
-        lst_mint: ctx.accounts.lst_mint.key(),
-        strat_total_lst_amount: 0,
-    });
+    ctx.accounts
+        .strat_state
+        .set_inner(CommonVaultStrategyState {
+            lst_mint: ctx.accounts.lst_mint.key(),
+            strat_total_lst_amount: 0,
+        });
     Ok(())
 }

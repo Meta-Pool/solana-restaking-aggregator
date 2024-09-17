@@ -21,7 +21,7 @@ pub struct SecondaryVaultState {
     /// last computation of token_sol_price, price is obtained ON-CHAIN, read from the LST token program state
     pub lst_sol_price_timestamp: u64,
 
-    /// total lst amount backing this vault_total_sol_value 
+    /// total lst amount backing this vault_total_sol_value
     /// To compute SOL value of the entire vault use: vault_total_lst_amount * lst_token_sol_price
     /// invariant: vault_total_token_amount = in_strategies_amount + locally_stored_amount
     pub vault_total_lst_amount: u64,
@@ -45,11 +45,9 @@ pub struct SecondaryVaultState {
     pub deposits_disabled: bool,
     /// 0 means no cap - measured in vault accepted tokens
     pub token_deposit_cap: u64,
-
 }
 
 impl SecondaryVaultState {
-
     pub fn vault_total_sol_value(&self) -> u64 {
         lst_amount_to_sol_value(self.vault_total_lst_amount, self.lst_sol_price_p32)
     }
@@ -80,4 +78,3 @@ impl SecondaryVaultState {
             && self.tickets_target_sol_amount == 0
     }
 }
-
