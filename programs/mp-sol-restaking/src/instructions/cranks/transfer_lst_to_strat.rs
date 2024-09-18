@@ -48,6 +48,7 @@ pub struct TransferLstToStrat<'info> {
     /// vault->strat relation entry
     /// if this account exists, the common_strategy_state was correctly attached to the system
     #[account(
+        mut,
         has_one = main_state,
         has_one = lst_mint,
         has_one = common_strategy_state,
@@ -116,6 +117,10 @@ pub fn handle_transfer_lst_to_strat(
     ctx.accounts.vault_state.in_strategies_amount += lst_amount;
     // no longer locally stored amount
     ctx.accounts.vault_state.locally_stored_amount -= lst_amount;
+    // this increase of the strat lst amount is not a profit
+    ctx.accounts
+        .vault_strategy_relation_entry
+        .last_read_strat_lst_amount += lst_amount;
 
     emit!(crate::events::TransferLstToStratEvent {
         main_state: ctx.accounts.main_state.key(),
