@@ -120,6 +120,10 @@ pub fn handle_get_lst_from_strat(ctx: Context<GetLstFromStrat>) -> Result<()> {
     ctx.accounts
         .vault_strategy_relation_entry
         .next_withdraw_lst_amount -= lst_amount;
+    // this decrease of the strat lst amount is not a loss
+    ctx.accounts
+        .vault_strategy_relation_entry
+        .last_read_strat_lst_amount -= lst_amount;
 
     emit!(crate::events::GetLstFromStratEvent {
         main_state: ctx.accounts.main_state.key(),
