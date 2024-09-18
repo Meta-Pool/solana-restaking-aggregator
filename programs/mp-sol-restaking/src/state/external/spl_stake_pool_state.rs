@@ -1,5 +1,5 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use anchor_lang::solana_program::{pubkey, pubkey::Pubkey};
+use borsh::{BorshDeserialize, BorshSerialize};
 
 pub const SPL_STAKE_POOL_PROGRAM: Pubkey = pubkey!("SPoo1Ku8WFXoNDMHPsrGSTSG1Y47rzgn41SLUNakuHy");
 
@@ -61,4 +61,3 @@ pub struct SplStakePoolState {
     pub last_epoch_pool_token_supply: u64,
     pub last_epoch_total_lamports: u64,
 }
-

@@ -33,8 +33,8 @@ pub struct Stake<'info> {
         bump
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
-    #[account(mut, 
-        associated_token::mint = lst_mint, 
+    #[account(mut,
+        associated_token::mint = lst_mint,
         associated_token::authority = vaults_ata_pda_auth
     )]
     // where the lst tokens are stored while not in strategies
@@ -64,7 +64,7 @@ pub struct Stake<'info> {
 }
 
 /// amount is an lst amount
-pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64, ref_code:u32) -> Result<()> {
+pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64, ref_code: u32) -> Result<()> {
     // check deposits are enabled in this secondary-vault
     require_eq!(
         ctx.accounts.vault_state.deposits_disabled,
@@ -79,13 +79,18 @@ pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64, ref_code:u32) -> Resul
         TWO_POW_32,
         ErrorCode::InvalidStoredLstPrice
     );
-    
+
     // we need the LST/SOL price to be updated
     // update LST/SOL price now
     internal_update_vault_token_sol_price(
-        &mut ctx.accounts.main_state, 
-        &mut ctx.accounts.vault_state, 
-        if ctx.remaining_accounts.len() >= 1 {Some(ctx.remaining_accounts[0].to_account_info())} else {None})?;
+        &mut ctx.accounts.main_state,
+        &mut ctx.accounts.vault_state,
+        if ctx.remaining_accounts.len() >= 1 {
+            Some(ctx.remaining_accounts[0].to_account_info())
+        } else {
+            None
+        },
+    )?;
 
     // compute the sol value of deposited lst_amount
     let deposited_sol_value =

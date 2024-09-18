@@ -1,7 +1,7 @@
+pub mod external;
 pub mod main_vault;
 pub mod secondary_vault;
 pub mod unstake_ticket;
-pub mod external;
 pub mod vault_strategy_relation_entry;
 
 pub use main_vault::*;

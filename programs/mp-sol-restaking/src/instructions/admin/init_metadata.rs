@@ -37,7 +37,7 @@ pub struct InitMetadata<'info> {
     /// CHECK: New Metaplex Account being created
     /// note: metaplex uses a different way to compute PDAs than anchor
     /// this should be PDA("metadata",token_metadata_program,mint) program:token_metadata_program
-    /// yes, token_metadata_program is repeated in the PDA generation 
+    /// yes, token_metadata_program is repeated in the PDA generation
     #[account(mut)]
     pub metadata: UncheckedAccount<'info>,
 
@@ -79,11 +79,7 @@ pub fn handle_init_metadata(ctx: Context<InitMetadata>) -> Result<()> {
         &signer,
     );
 
-    create_metadata_accounts_v3(metadata_ctx, 
-        token_data, 
-        false, 
-        true, 
-        None)?;
+    create_metadata_accounts_v3(metadata_ctx, token_data, false, true, None)?;
 
     msg!("Token mint created successfully.");
 

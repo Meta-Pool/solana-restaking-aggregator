@@ -6,7 +6,6 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 #[account]
 pub struct CommonVaultStrategyState {
-
     pub lst_mint: Pubkey,
 
     /// total lst in this strategy
@@ -15,6 +14,4 @@ pub struct CommonVaultStrategyState {
     /// decremented when slashed
     /// decremented when sending tokens to the vault (via intermediate ATA)
     pub strat_total_lst_amount: u64,
-
 }
-

@@ -1,4 +1,4 @@
-use crate::{state::MainVaultState, MAX_PERFORMANCE_FEE_BP, error::ErrorCode};
+use crate::{error::ErrorCode, state::MainVaultState, MAX_PERFORMANCE_FEE_BP};
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
@@ -29,7 +29,11 @@ pub fn handle_configure_main_vault(
         ctx.accounts.main_state.treasury_mpsol_account = Some(treasury_mpsol_account);
     }
     if let Some(performance_fee_bp) = values.performance_fee_bp {
-        require_gte!(MAX_PERFORMANCE_FEE_BP, performance_fee_bp, ErrorCode::PerformanceFeeTooHigh); 
+        require_gte!(
+            MAX_PERFORMANCE_FEE_BP,
+            performance_fee_bp,
+            ErrorCode::PerformanceFeeTooHigh
+        );
         ctx.accounts.main_state.performance_fee_bp = performance_fee_bp;
     }
     if let Some(new_admin_pubkey) = values.new_admin_pubkey {

@@ -6,7 +6,7 @@ use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::TokenAccount;
 use anchor_spl::token::{Mint, Token};
 
-/// Note: Before adding a secondary vault 
+/// Note: Before adding a secondary vault
 /// THE CONTRACT CODE OF THE LST HAS TO BE VERIFIED
 /// Adding the LST means adding sol-value to the main vault
 /// so it is important to ensure that the LST is a valid LST
@@ -44,8 +44,8 @@ pub struct CreateSecondaryVault<'info> {
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
 
-    #[account( 
-        associated_token::mint = lst_mint, 
+    #[account(
+        associated_token::mint = lst_mint,
         associated_token::authority = vaults_ata_pda_auth
     )]
     pub vault_lst_account: Account<'info, TokenAccount>,
@@ -59,13 +59,13 @@ pub fn handle_create_secondary_vault(ctx: Context<CreateSecondaryVault>) -> Resu
     ctx.accounts.vault_state.set_inner(SecondaryVaultState {
         lst_mint: ctx.accounts.lst_mint.key(),
         vault_total_lst_amount: 0,
-        lst_sol_price_p32 : 0,
-        lst_sol_price_timestamp : 0,
-        in_strategies_amount : 0,
-        locally_stored_amount : 0,
-        tickets_target_sol_amount : 0,
-        deposits_disabled : true,
-        token_deposit_cap : 0,
+        lst_sol_price_p32: 0,
+        lst_sol_price_timestamp: 0,
+        in_strategies_amount: 0,
+        locally_stored_amount: 0,
+        tickets_target_sol_amount: 0,
+        deposits_disabled: true,
+        token_deposit_cap: 0,
     });
     Ok(())
 }

@@ -1,13 +1,13 @@
+use crate::{constants::*, error::ErrorCode, MainVaultState, UnstakeTicket};
+use crate::{internal_update_vault_token_sol_price, SecondaryVaultState};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
-use shared_lib::sol_value_to_lst_amount;
-use crate::{internal_update_vault_token_sol_price, SecondaryVaultState};
-use crate::{constants::*, error::ErrorCode, MainVaultState, UnstakeTicket};
 use anchor_spl::token::{Token, TokenAccount, Transfer};
+use shared_lib::sol_value_to_lst_amount;
 
 #[derive(Accounts)]
 /// Claim-ticket: total o partial claim of the SOL-value of an unstake-ticket
-/// This instruction allows the ticket-beneficiary to withdraw 
+/// This instruction allows the ticket-beneficiary to withdraw
 /// any of the available LST tokens, up to the specified SOL-value of the ticket
 /// If all the sol-value is withdrawn, the ticket is closed
 pub struct TicketClaim<'info> {
@@ -48,7 +48,7 @@ pub struct TicketClaim<'info> {
     )]
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
     #[account(mut,
-        associated_token::mint = lst_mint, 
+        associated_token::mint = lst_mint,
         associated_token::authority = vaults_ata_pda_auth
     )]
     pub vault_lst_account: Account<'info, TokenAccount>,
@@ -57,8 +57,10 @@ pub struct TicketClaim<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount: u64) -> Result<()> {
-
+pub fn handle_ticket_claim(
+    ctx: Context<TicketClaim>,
+    withdraw_sol_value_amount: u64,
+) -> Result<()> {
     // check ticket is due
     let now_ts = Clock::get().unwrap().unix_timestamp as u64;
     require_gte!(
@@ -93,14 +95,17 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
     // update current ticket_sol_value
     ctx.accounts.ticket_account.ticket_sol_value -= withdraw_sol_value_amount;
     // subtract from tickets_target_sol_amount
-    // Note: `tickets_target_sol_amount` is a target value eventually updated. 
+    // Note: `tickets_target_sol_amount` is a target value eventually updated.
     //       Even if this value is not correct, the beneficiary should be able to claim the ticket
-    ctx.accounts.vault_state.tickets_target_sol_amount =
-        ctx.accounts.vault_state.tickets_target_sol_amount.saturating_sub(withdraw_sol_value_amount);
+    ctx.accounts.vault_state.tickets_target_sol_amount = ctx
+        .accounts
+        .vault_state
+        .tickets_target_sol_amount
+        .saturating_sub(withdraw_sol_value_amount);
 
     // if total withdraw
     if ctx.accounts.ticket_account.ticket_sol_value == 0 {
-        // close ticket, 
+        // close ticket,
         // mark ticket-account for deletion by moving all raw.account-storage lamports to beneficiary.
         // at this point ctx.accounts.ticket_account.ticket_sol_value = 0, and this works as a tombstone
         let ticket_account_info = ctx.accounts.ticket_account.to_account_info();
@@ -109,8 +114,7 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
         let mut beneficiary_lamports = beneficiary_account_info.lamports.borrow_mut();
         **beneficiary_lamports += **ticket_account_lamports;
         **ticket_account_lamports = 0;
-    }
-    else {
+    } else {
         // can't leave dust, remainder > MIN_MOVEMENT_LAMPORTS
         require_gte!(
             ctx.accounts.ticket_account.ticket_sol_value,
@@ -122,13 +126,20 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
     // we need the LST/SOL price to be updated
     // update LST/SOL price now
     internal_update_vault_token_sol_price(
-        &mut ctx.accounts.main_state, 
-        &mut ctx.accounts.vault_state, 
-        if ctx.remaining_accounts.len() >= 1 {Some(ctx.remaining_accounts[0].to_account_info())} else {None})?;
+        &mut ctx.accounts.main_state,
+        &mut ctx.accounts.vault_state,
+        if ctx.remaining_accounts.len() >= 1 {
+            Some(ctx.remaining_accounts[0].to_account_info())
+        } else {
+            None
+        },
+    )?;
 
     // compute how much lst is required to honor withdraw_sol_value_amount
-    let lst_amount_to_deliver =
-        sol_value_to_lst_amount(withdraw_sol_value_amount, ctx.accounts.vault_state.lst_sol_price_p32);
+    let lst_amount_to_deliver = sol_value_to_lst_amount(
+        withdraw_sol_value_amount,
+        ctx.accounts.vault_state.lst_sol_price_p32,
+    );
     // check enough lst in vault
     require_gte!(
         ctx.accounts.vault_lst_account.amount,
@@ -138,20 +149,21 @@ pub fn handle_ticket_claim(ctx: Context<TicketClaim>, withdraw_sol_value_amount:
     // send tokens to the user
     {
         anchor_spl::token::transfer(
-        CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.vault_lst_account.to_account_info(),
-                to: ctx.accounts.beneficiary_lst_account.to_account_info(),
-                authority: ctx.accounts.vaults_ata_pda_auth.to_account_info(),
-            },
-            &[&[
-                &ctx.accounts.main_state.key().to_bytes(),
-                VAULTS_ATA_AUTH_SEED,
-                &[ctx.bumps.vaults_ata_pda_auth]
-                ]]
-        ), 
-        lst_amount_to_deliver)?;
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault_lst_account.to_account_info(),
+                    to: ctx.accounts.beneficiary_lst_account.to_account_info(),
+                    authority: ctx.accounts.vaults_ata_pda_auth.to_account_info(),
+                },
+                &[&[
+                    &ctx.accounts.main_state.key().to_bytes(),
+                    VAULTS_ATA_AUTH_SEED,
+                    &[ctx.bumps.vaults_ata_pda_auth],
+                ]],
+            ),
+            lst_amount_to_deliver,
+        )?;
     }
     // the tokens are removed from the vault total
     ctx.accounts.vault_state.vault_total_lst_amount -= lst_amount_to_deliver;

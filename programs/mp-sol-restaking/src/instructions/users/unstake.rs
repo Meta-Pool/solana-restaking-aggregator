@@ -6,7 +6,7 @@ use shared_lib::mpsol_amount_to_sol_value;
 
 #[derive(Accounts)]
 /// Unstake: burn mpSOL and get an unstake-ticket for the SOL-value of the mpSOL burned
-/// This instruction creates an Unstake-ticket with a SOL-value, that when due, 
+/// This instruction creates an Unstake-ticket with a SOL-value, that when due,
 /// can be exchanged for any of the available LST tokens, for the specified SOL-value
 pub struct Unstake<'info> {
     #[account(mut, has_one = mpsol_mint)]
@@ -28,7 +28,6 @@ pub struct Unstake<'info> {
 }
 
 pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
-
     // compute the sol value of the mpsol to burn
     let ticket_sol_value = mpsol_amount_to_sol_value(
         mpsol_amount,
@@ -58,14 +57,14 @@ pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
         mpsol_amount,
     )?;
     // by removing from main_state.backing_sol_value,
-    // mpSOL price remains the same after the burn 
+    // mpSOL price remains the same after the burn
     ctx.accounts.main_state.backing_sol_value -= ticket_sol_value;
     // -------
 
     // compute ticket due timestamp
     let now_ts = Clock::get().unwrap().unix_timestamp as u64;
     let ticket_due_timestamp =
-        now_ts + ( ctx.accounts.main_state.unstake_ticket_waiting_hours as u64 * 60 * 60 );
+        now_ts + (ctx.accounts.main_state.unstake_ticket_waiting_hours as u64 * 60 * 60);
 
     // initialize new_ticket_account
     ctx.accounts

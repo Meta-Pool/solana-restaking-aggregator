@@ -1,7 +1,6 @@
 use crate::{
-    constants::*, error::ErrorCode,
-    external::common_strategy_state,
-    MainVaultState, SecondaryVaultState, VaultStrategyRelationEntry,
+    constants::*, error::ErrorCode, external::common_strategy_state, MainVaultState,
+    SecondaryVaultState, VaultStrategyRelationEntry,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
@@ -46,6 +45,41 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     /// CHECK: external acc manually deserialized
     pub common_strategy_state: UncheckedAccount<'info>,
 
+    /// CHECK: PDA strat authority, used to compute ATA
+    #[account(
+        seeds = [
+            AUTHORITY_SEED,
+            common_strategy_state.key().as_ref()
+        ],
+        bump,
+        seeds::program = vault_strategy_relation_entry.strategy_program_code
+    )]
+    strategy_authority: UncheckedAccount<'info>,
+
+    #[account(
+        associated_token::mint = lst_mint,
+        associated_token::authority = strategy_authority,
+    )]
+    strategy_deposit_account: Account<'info, TokenAccount>,
+
+    /// CHECK: get vault Auth PDA
+    /// for temp-ATA to move lst from strat back to the vault
+    #[account(
+        seeds = [
+            crate::VAULT_STRAT_WITHDRAW_ATA_AUTH_SEED,
+            &common_strategy_state.key().to_bytes(),
+        ],
+        bump
+    )]
+    pub vault_strat_withdraw_auth: UncheckedAccount<'info>,
+
+    /// temp-ATA to move lst from strat back to the vault
+    #[account(
+        associated_token::mint = lst_mint,
+        associated_token::authority = vault_strat_withdraw_auth,
+    )]
+    lst_withdraw_account: Account<'info, TokenAccount>,
+
     #[account(mut, mint::authority = mpsol_mint_authority)]
     pub mpsol_mint: Box<Account<'info, Mint>>,
     /// CHECK: Auth PDA
@@ -77,9 +111,12 @@ pub fn handle_update_attached_strat_lst_amount(
         .last_read_strat_lst_amount;
 
     // read from external strategy state
-    let common_strategy_state = common_strategy_state::deserialize(&mut ctx.accounts.common_strategy_state)?;
+    let common_strategy_state =
+        common_strategy_state::deserialize(&mut ctx.accounts.common_strategy_state)?;
     require_keys_eq!(common_strategy_state.lst_mint, ctx.accounts.lst_mint.key());
-    let strat_reported_lst_amount = common_strategy_state.strat_total_lst_amount;
+    let strat_reported_lst_amount = common_strategy_state.strat_total_lst_amount
+        + ctx.accounts.strategy_deposit_account.amount
+        + ctx.accounts.lst_withdraw_account.amount;
 
     let (profit, slashing) = {
         // Phase 2. ?

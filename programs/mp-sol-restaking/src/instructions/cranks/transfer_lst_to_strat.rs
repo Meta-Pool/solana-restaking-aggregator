@@ -12,7 +12,7 @@ pub struct TransferLstToStrat<'info> {
 
     // the one in main_state
     #[account()]
-    pub operator_auth: Signer<'info>, 
+    pub operator_auth: Signer<'info>,
 
     /// CHECK: no need to decode mint
     #[account()]
@@ -40,7 +40,7 @@ pub struct TransferLstToStrat<'info> {
     pub vaults_ata_pda_auth: UncheckedAccount<'info>,
 
     #[account(mut,
-        associated_token::mint = lst_mint, 
+        associated_token::mint = lst_mint,
         associated_token::authority = vaults_ata_pda_auth
     )]
     pub vault_lst_account: Account<'info, TokenAccount>,
@@ -49,7 +49,7 @@ pub struct TransferLstToStrat<'info> {
     /// if this account exists, the common_strategy_state was correctly attached to the system
     #[account(
         has_one = main_state,
-        has_one = lst_mint, 
+        has_one = lst_mint,
         has_one = common_strategy_state,
         seeds = [
             VAULT_STRAT_ENTRY_SEED,
@@ -62,7 +62,7 @@ pub struct TransferLstToStrat<'info> {
     /// CHECK: strategy program code
     #[account()]
     pub strategy_program_code: UncheckedAccount<'info>,
-    
+
     /// must be the one mentioned in vault_strategy_relation_entry
     /// CHECK: external acc manually deserialized
     #[account( owner=strategy_program_code.key() )]
@@ -88,12 +88,14 @@ pub struct TransferLstToStrat<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-pub fn handle_transfer_lst_to_strat(ctx: Context<TransferLstToStrat>, lst_amount: u64) -> Result<()> {
-
-    require_gt!(lst_amount,0, ErrorCode::AmountIsZero);
+pub fn handle_transfer_lst_to_strat(
+    ctx: Context<TransferLstToStrat>,
+    lst_amount: u64,
+) -> Result<()> {
+    require_gt!(lst_amount, 0, ErrorCode::AmountIsZero);
 
     // Transfer tokens from vault to strat lst
-    anchor_spl::token::transfer( 
+    anchor_spl::token::transfer(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Transfer {
@@ -104,11 +106,12 @@ pub fn handle_transfer_lst_to_strat(ctx: Context<TransferLstToStrat>, lst_amount
             &[&[
                 &ctx.accounts.main_state.key().to_bytes(),
                 VAULTS_ATA_AUTH_SEED,
-                &[ctx.bumps.vaults_ata_pda_auth]
-                ]])
-        ,
-        lst_amount)?;
-    
+                &[ctx.bumps.vaults_ata_pda_auth],
+            ]],
+        ),
+        lst_amount,
+    )?;
+
     // now in strategies
     ctx.accounts.vault_state.in_strategies_amount += lst_amount;
     // no longer locally stored amount
