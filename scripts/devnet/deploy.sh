@@ -4,7 +4,11 @@ UPGRADE_AUTHORITY=~/.config/solana/DEVYT7nSvD4gzP6BH2N1ubUamErS4TXtBYwdVrFBBVr.j
 echo SIZE
 solana program show -u d $PROGRAM_KEYPAIR  
 ls -l target/deploy/$PROGRAM_LIB_NAME.so
-echo DEPLOY
+echo current account
+solana address
+solana balance -u m
+echo DEPLOY?
+read -p "Press Enter to continue" </dev/tty
 solana program deploy \
     -u d \
     target/deploy/$PROGRAM_LIB_NAME.so \

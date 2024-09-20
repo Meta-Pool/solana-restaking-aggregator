@@ -616,10 +616,6 @@
         {
           "name": "operator_auth",
           "type": "pubkey"
-        },
-        {
-          "name": "strategy_rebalancer_auth",
-          "type": "pubkey"
         }
       ]
     },
@@ -1825,6 +1821,11 @@
       "code": 6027,
       "name": "MustWithdrawAllPendingLst",
       "msg": "Must withdraw all pending lst"
+    },
+    {
+      "code": 6028,
+      "name": "WithdrawFeeTooHigh",
+      "msg": "Withdraw Fee Too High"
     }
   ],
   "types": [
@@ -1835,6 +1836,12 @@
         "fields": [
           {
             "name": "unstake_ticket_waiting_hours",
+            "type": {
+              "option": "u16"
+            }
+          },
+          {
+            "name": "withdraw_fee_bp",
             "type": {
               "option": "u16"
             }
@@ -1929,11 +1936,23 @@
             "type": "pubkey"
           },
           {
-            "name": "strategy_rebalancer_auth",
+            "name": "withdraw_fee_bp",
             "docs": [
               "authority to move tokens in or out strategies, normally a DAO-authorized bot acting on votes"
             ],
-            "type": "pubkey"
+            "type": "u16"
+          },
+          {
+            "name": "_reserved_space",
+            "docs": [
+              "reserved space for extensions"
+            ],
+            "type": {
+              "array": [
+                "u8",
+                30
+              ]
+            }
           },
           {
             "name": "mpsol_mint",
@@ -2445,6 +2464,11 @@
       "name": "MAX_WHITELISTED_VAULT_STRATEGIES",
       "type": "u8",
       "value": "64"
+    },
+    {
+      "name": "MAX_WITHDRAW_FEE_BP",
+      "type": "u16",
+      "value": "100"
     },
     {
       "name": "MIN_MOVEMENT_LAMPORTS",
