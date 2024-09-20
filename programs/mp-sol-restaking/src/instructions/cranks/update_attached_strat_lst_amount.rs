@@ -101,6 +101,11 @@ pub struct UpdateAttachedStratLstAmount<'info> {
 pub fn handle_update_attached_strat_lst_amount(
     ctx: Context<UpdateAttachedStratLstAmount>,
 ) -> Result<()> {
+    // update timestamp in vault_strategy_relation_entry
+    ctx.accounts
+        .vault_strategy_relation_entry
+        .last_read_strat_lst_timestamp = Clock::get().unwrap().unix_timestamp as u64;
+
     //
     // see if the strat has now more lst than before
     //
@@ -150,21 +155,16 @@ pub fn handle_update_attached_strat_lst_amount(
     check_price_not_stale(ctx.accounts.vault_state.lst_sol_price_timestamp)?;
     let profit_sol_value =
         lst_amount_to_sol_value(profit, ctx.accounts.vault_state.lst_sol_price_p32);
-    let slashing_sol_value =
-        lst_amount_to_sol_value(loss, ctx.accounts.vault_state.lst_sol_price_p32);
-
+    // Note: dead code - kept for consistency. Because of the "if loss>0 return" loss_sol_value is always zero  
+    let loss_sol_value = lst_amount_to_sol_value(loss, ctx.accounts.vault_state.lst_sol_price_p32);
     // update main_state.backing_sol_value with delta sol-value
     ctx.accounts.main_state.backing_sol_value =
-        ctx.accounts.main_state.backing_sol_value + profit_sol_value - slashing_sol_value;
+        ctx.accounts.main_state.backing_sol_value + profit_sol_value - loss_sol_value;
 
-    // to finalize:
-    // update last read amount and timestamp in vault_strategy_relation_entry
+    // update last read amount in vault_strategy_relation_entry
     ctx.accounts
         .vault_strategy_relation_entry
         .last_read_strat_lst_amount = strat_reported_lst_amount;
-    ctx.accounts
-        .vault_strategy_relation_entry
-        .last_read_strat_lst_timestamp = Clock::get().unwrap().unix_timestamp as u64;
 
     emit!(crate::events::UpdateAttachedStratLstAmountEvent {
         main_state: ctx.accounts.main_state.key(),
