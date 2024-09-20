@@ -118,24 +118,32 @@ pub fn handle_update_attached_strat_lst_amount(
         + ctx.accounts.strategy_deposit_account.amount
         + ctx.accounts.lst_withdraw_account.amount;
 
-    let (profit, slashing) = {
+    let (profit, loss) = {
         // Phase 2. ?
         if strat_reported_lst_amount >= last_read_lst_amount {
             // Phase 3. Profit!
             (strat_reported_lst_amount - last_read_lst_amount, 0)
         } else {
-            // slashed? :(
+            // loss :(
             (0, last_read_lst_amount - strat_reported_lst_amount)
         }
     };
 
+    if profit == 0 || loss > 0 {
+        // during the epoch, for leveraged strategies the SOL borrow fees can cause
+        // a temporal loss because the LST hasn't updated its price yet,
+        // in that case we ignore this update call. This instruction should be called
+        // after the LST has updated it's price (4 hs after epoch start for example)
+        return Ok(());
+    }
+
     // if the amount of LSTs changed, update accounting in the secondary_vault
     // add to the total
     ctx.accounts.vault_state.vault_total_lst_amount =
-        ctx.accounts.vault_state.vault_total_lst_amount + profit - slashing;
+        ctx.accounts.vault_state.vault_total_lst_amount + profit - loss;
     // but it is in an strategy
     ctx.accounts.vault_state.in_strategies_amount =
-        ctx.accounts.vault_state.in_strategies_amount + profit - slashing;
+        ctx.accounts.vault_state.in_strategies_amount + profit - loss;
 
     // compute profit/slashing in terms of SOL-value, to update main-state backing_sol_value
     // LST/SOL price must not be stale
@@ -143,7 +151,7 @@ pub fn handle_update_attached_strat_lst_amount(
     let profit_sol_value =
         lst_amount_to_sol_value(profit, ctx.accounts.vault_state.lst_sol_price_p32);
     let slashing_sol_value =
-        lst_amount_to_sol_value(slashing, ctx.accounts.vault_state.lst_sol_price_p32);
+        lst_amount_to_sol_value(loss, ctx.accounts.vault_state.lst_sol_price_p32);
 
     // update main_state.backing_sol_value with delta sol-value
     ctx.accounts.main_state.backing_sol_value =
@@ -168,7 +176,18 @@ pub fn handle_update_attached_strat_lst_amount(
         main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
     });
 
-    if profit_sol_value > 0 && slashing_sol_value == 0 {
+    // compute protocol fees
+    let performance_fee_mpsol_amount = {
+        let performance_fee_sol_value =
+            apply_bp(profit_sol_value, ctx.accounts.main_state.performance_fee_bp);
+        sol_value_to_mpsol_amount(
+            performance_fee_sol_value,
+            ctx.accounts.main_state.backing_sol_value,
+            ctx.accounts.mpsol_mint.supply,
+        )
+    };
+
+    if performance_fee_mpsol_amount > 0 {
         if let Some(treasury_mpsol_account) = ctx.accounts.main_state.treasury_mpsol_account {
             require_keys_eq!(
                 treasury_mpsol_account,
@@ -178,33 +197,22 @@ pub fn handle_update_attached_strat_lst_amount(
 
             // performance fee
             // mint mpSOL for the protocol treasury
-            {
-                let performance_fee_mpsol_amount = {
-                    let performance_fee_sol_value =
-                        apply_bp(profit_sol_value, ctx.accounts.main_state.performance_fee_bp);
-                    sol_value_to_mpsol_amount(
-                        performance_fee_sol_value,
-                        ctx.accounts.main_state.backing_sol_value,
-                        ctx.accounts.mpsol_mint.supply,
-                    )
-                };
-                mint_to(
-                    CpiContext::new_with_signer(
-                        ctx.accounts.token_program.to_account_info(),
-                        MintTo {
-                            mint: ctx.accounts.mpsol_mint.to_account_info(),
-                            to: ctx.accounts.treasury_mpsol_account.to_account_info(),
-                            authority: ctx.accounts.mpsol_mint_authority.to_account_info(),
-                        },
-                        &[&[
-                            &ctx.accounts.main_state.key().to_bytes(),
-                            MAIN_VAULT_MINT_AUTH_SEED,
-                            &[ctx.bumps.mpsol_mint_authority],
-                        ]],
-                    ),
-                    performance_fee_mpsol_amount,
-                )?;
-            }
+            mint_to(
+                CpiContext::new_with_signer(
+                    ctx.accounts.token_program.to_account_info(),
+                    MintTo {
+                        mint: ctx.accounts.mpsol_mint.to_account_info(),
+                        to: ctx.accounts.treasury_mpsol_account.to_account_info(),
+                        authority: ctx.accounts.mpsol_mint_authority.to_account_info(),
+                    },
+                    &[&[
+                        &ctx.accounts.main_state.key().to_bytes(),
+                        MAIN_VAULT_MINT_AUTH_SEED,
+                        &[ctx.bumps.mpsol_mint_authority],
+                    ]],
+                ),
+                performance_fee_mpsol_amount,
+            )?;
         }
     }
 

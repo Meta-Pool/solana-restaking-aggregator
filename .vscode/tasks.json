@@ -14,19 +14,6 @@
 			"label": "Anchor build"
 		},
 		{
-			"type": "shell",
-			"command": "anchor",
-			"args": [
-				"build",
-				"-v"
-			],
-			"problemMatcher": [
-				"$rustc"
-			],
-			"group": "build",
-			"label": "Anchor build VERIFIABLE"
-		},
-		{
 			"type": "process",
 			"command": "anchor",
 			"args": ["test"],
