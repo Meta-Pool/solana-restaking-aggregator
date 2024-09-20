@@ -155,7 +155,7 @@ pub fn handle_update_attached_strat_lst_amount(
     check_price_not_stale(ctx.accounts.vault_state.lst_sol_price_timestamp)?;
     let profit_sol_value =
         lst_amount_to_sol_value(profit, ctx.accounts.vault_state.lst_sol_price_p32);
-    // Note: dead code - kept for consistency. Because of the "if loss>0 return" loss_sol_value is always zero  
+    // Note: dead code - kept for consistency. Because of the "if loss>0 return" loss_sol_value is always zero
     let loss_sol_value = lst_amount_to_sol_value(loss, ctx.accounts.vault_state.lst_sol_price_p32);
     // update main_state.backing_sol_value with delta sol-value
     ctx.accounts.main_state.backing_sol_value =
