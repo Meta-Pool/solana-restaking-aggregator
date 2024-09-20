@@ -34,12 +34,8 @@ pub mod mp_sol_restaking {
     // ------------------
     // admin
     // ------------------
-    pub fn initialize(
-        ctx: Context<Initialize>,
-        operator_auth: Pubkey,
-        strategy_rebalancer_auth: Pubkey,
-    ) -> Result<()> {
-        initialize::handle_initialize(ctx, operator_auth, strategy_rebalancer_auth)
+    pub fn initialize(ctx: Context<Initialize>, operator_auth: Pubkey) -> Result<()> {
+        initialize::handle_initialize(ctx, operator_auth)
     }
 
     pub fn init_metadata(ctx: Context<InitMetadata>) -> Result<()> {

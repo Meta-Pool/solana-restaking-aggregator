@@ -9,7 +9,9 @@ pub struct MainVaultState {
     /// authority to set parameters, token_deposit_caps & whitelisted_strategies, normally a DAO-authorized bot acting on votes
     pub operator_auth: Pubkey,
     /// authority to move tokens in or out strategies, normally a DAO-authorized bot acting on votes
-    pub strategy_rebalancer_auth: Pubkey,
+    pub withdraw_fee_bp: u16,
+    /// reserved space for extensions
+    pub _reserved_space: [u8; 30],
 
     pub mpsol_mint: Pubkey,
     pub treasury_mpsol_account: Option<Pubkey>,
