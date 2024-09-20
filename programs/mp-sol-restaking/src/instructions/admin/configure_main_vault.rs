@@ -1,9 +1,10 @@
-use crate::{error::ErrorCode, state::MainVaultState, MAX_PERFORMANCE_FEE_BP};
+use crate::{error::ErrorCode, state::MainVaultState, MAX_PERFORMANCE_FEE_BP, MAX_WITHDRAW_FEE_BP};
 use anchor_lang::prelude::*;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Debug)]
 pub struct ConfigureMainVaultValues {
     unstake_ticket_waiting_hours: Option<u16>,
+    withdraw_fee_bp: Option<u16>,
     performance_fee_bp: Option<u16>,
     treasury_mpsol_account: Option<Pubkey>,
     new_admin_pubkey: Option<Pubkey>,
@@ -27,6 +28,14 @@ pub fn handle_configure_main_vault(
     }
     if let Some(treasury_mpsol_account) = values.treasury_mpsol_account {
         ctx.accounts.main_state.treasury_mpsol_account = Some(treasury_mpsol_account);
+    }
+    if let Some(withdraw_fee_bp) = values.withdraw_fee_bp {
+        require_gte!(
+            MAX_WITHDRAW_FEE_BP,
+            withdraw_fee_bp,
+            ErrorCode::WithdrawFeeTooHigh
+        );
+        ctx.accounts.main_state.withdraw_fee_bp = withdraw_fee_bp;
     }
     if let Some(performance_fee_bp) = values.performance_fee_bp {
         require_gte!(

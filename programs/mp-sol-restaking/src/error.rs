@@ -86,4 +86,7 @@ pub enum ErrorCode {
 
     #[msg("Must withdraw all pending lst")]
     MustWithdrawAllPendingLst,
+
+    #[msg("Withdraw Fee Too High")]
+    WithdrawFeeTooHigh,
 }

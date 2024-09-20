@@ -15,6 +15,8 @@ pub const MIN_MOVEMENT_LAMPORTS: u64 = 1_000_000; // avoid low-amount/rounding a
 #[constant]
 pub const MAX_PERFORMANCE_FEE_BP: u16 = 2500; // max 25% performance fee
 #[constant]
+pub const MAX_WITHDRAW_FEE_BP: u16 = 100; // max 1% withdraw fee
+#[constant]
 pub const VAULT_STRAT_ENTRY_SEED: &'static [u8] = b"vault-strat-entry";
 
 // generic word-seed for b"authority" --- used by strategies
