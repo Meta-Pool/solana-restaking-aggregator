@@ -7,3 +7,4 @@ test-ledger
 test-genesis/generated-data
 .yarn
 docker-target
+buffer-signer.json

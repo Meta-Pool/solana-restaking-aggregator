@@ -5,12 +5,12 @@ echo SIZE
 solana program show -u d $PROGRAM_KEYPAIR  
 ls -l target/deploy/$PROGRAM_LIB_NAME.so
 echo current account
-solana address
-solana balance -u m
+solana address -k $UPGRADE_AUTHORITY
+solana balance -u d -k $UPGRADE_AUTHORITY
 echo DEPLOY?
 read -p "Press Enter to continue" </dev/tty
 solana program deploy \
     -u d \
     target/deploy/$PROGRAM_LIB_NAME.so \
     --program-id $PROGRAM_KEYPAIR \
-    --upgrade-authority $UPGRADE_AUTHORITY
+    -k $UPGRADE_AUTHORITY --upgrade-authority $UPGRADE_AUTHORITY
