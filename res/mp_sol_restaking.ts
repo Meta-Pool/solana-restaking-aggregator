@@ -626,6 +626,69 @@ export type MpSolRestaking = {
       ]
     },
     {
+      "name": "removeFreezeAuth",
+      "discriminator": [
+        141,
+        21,
+        189,
+        59,
+        188,
+        23,
+        164,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState"
+        },
+        {
+          "name": "mpsolMint",
+          "writable": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mpsolMintAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "mainState"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  105,
+                  110,
+                  45,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "setNextWithdrawAmount",
       "discriminator": [
         254,

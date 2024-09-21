@@ -620,6 +620,69 @@
       ]
     },
     {
+      "name": "remove_freeze_auth",
+      "discriminator": [
+        141,
+        21,
+        189,
+        59,
+        188,
+        23,
+        164,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "main_state"
+          ]
+        },
+        {
+          "name": "main_state"
+        },
+        {
+          "name": "mpsol_mint",
+          "writable": true,
+          "relations": [
+            "main_state"
+          ]
+        },
+        {
+          "name": "mpsol_mint_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "main_state"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  105,
+                  110,
+                  45,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "set_next_withdraw_amount",
       "discriminator": [
         254,
