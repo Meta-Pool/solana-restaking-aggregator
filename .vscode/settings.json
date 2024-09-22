@@ -57,7 +57,8 @@
         "package.json",
         "tasks.json",
         "yarn.lock",
-        "**/.cargo/*"
+        "**/.cargo/*",
+        "**/res/*"
 
     ],
     "typescript.tsdk": "node_modules/typescript/lib",

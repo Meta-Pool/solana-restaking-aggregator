@@ -8,7 +8,7 @@ use anchor_spl::token::{Mint, SetAuthority, Token};
 #[derive(Accounts)]
 /// Admin: set the mint freeze auth to None
 pub struct RemoveFreezeAuth<'info> {
-    #[account(mut)]
+    #[account()]
     pub admin: Signer<'info>,
 
     #[account(has_one = mpsol_mint, has_one = admin)]
