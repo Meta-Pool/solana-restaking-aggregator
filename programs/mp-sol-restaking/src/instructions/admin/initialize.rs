@@ -28,8 +28,7 @@ pub struct Initialize<'info> {
     #[account(init,
         payer = admin,
         mint::decimals = 9, // all mints must have 9 decimals, to simplify x/SOL price calculations
-        mint::authority = mpsol_mint_pda_authority,
-        mint::freeze_authority = mpsol_mint_pda_authority
+        mint::authority = mpsol_mint_pda_authority
         )]
     pub mpsol_token_mint: Account<'info, Mint>,
 

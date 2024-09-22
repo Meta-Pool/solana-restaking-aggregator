@@ -15,8 +15,7 @@ pub struct RemoveFreezeAuth<'info> {
     pub main_state: Account<'info, MainVaultState>,
 
     #[account(mut,
-        mint::authority = mpsol_mint_authority,
-        mint::freeze_authority = mpsol_mint_authority
+        mint::authority = mpsol_mint_authority
     )]
     pub mpsol_mint: Box<Account<'info, Mint>>,
     /// CHECK: Auth PDA
