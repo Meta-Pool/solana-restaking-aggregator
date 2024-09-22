@@ -1,12 +1,12 @@
 use crate::{constants::*, MainVaultState};
-/// Stake any of the supported LST tokens
+/// Remove freeze auth
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_spl::token::spl_token::instruction::AuthorityType;
 use anchor_spl::token::{Mint, SetAuthority, Token};
 
 #[derive(Accounts)]
-/// Init: Only-once, make sure the mint freeze auth is None
+/// Admin: set the mint freeze auth to None
 pub struct RemoveFreezeAuth<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
