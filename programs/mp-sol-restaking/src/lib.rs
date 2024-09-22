@@ -64,6 +64,10 @@ pub mod mp_sol_restaking {
         attach_common_strategy_state::handle_attach_common_strategy_state(ctx)
     }
 
+    pub fn remove_freeze_auth(ctx: Context<RemoveFreezeAuth>) -> Result<()> {
+        handle_remove_freeze_auth(ctx)
+    }
+
     // ------------------
     // cranks
     // ------------------
