@@ -634,7 +634,6 @@
       "accounts": [
         {
           "name": "admin",
-          "writable": true,
           "signer": true,
           "relations": [
             "main_state"

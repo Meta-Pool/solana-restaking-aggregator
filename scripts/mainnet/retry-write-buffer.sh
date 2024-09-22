@@ -4,10 +4,8 @@ UPGRADE_AUTHORITY=~/.config/solana/MP5o14fjGUU6G562tivBsvUBohqFxiczbWGHrwXDEyQ.j
 if [ ! -f buffer-signer.json ]; then
     solana-keygen recover -o buffer-signer.json
 fi
-solana program deploy \
+solana program write-buffer \
     -u mainnet-beta \
     target/deploy/$PROGRAM_LIB_NAME.so \
-    --program-id $PROGRAM_KEYPAIR \
-    --upgrade-authority $UPGRADE_AUTHORITY \
-    --buffer buffer-signer.json --max-sign-attempts 2 \
+    --buffer buffer-signer.json \
     && rm buffer-signer.json

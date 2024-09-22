@@ -640,7 +640,6 @@ export type MpSolRestaking = {
       "accounts": [
         {
           "name": "admin",
-          "writable": true,
           "signer": true,
           "relations": [
             "mainState"
