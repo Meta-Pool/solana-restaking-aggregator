@@ -92,8 +92,9 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     )]
     pub mpsol_mint_authority: UncheckedAccount<'info>,
 
-    #[account(mut, token::mint = mpsol_mint)]
-    pub treasury_mpsol_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    /// CHECK: compare to set acc in main state
+    pub treasury_mpsol_account: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
 }

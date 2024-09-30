@@ -53,6 +53,10 @@ pub mod mp_sol_restaking {
         configure_main_vault::handle_configure_main_vault(ctx, values)
     }
 
+    pub fn configure_treasury_account(ctx: Context<ConfigureTreasuryAccount>) -> Result<()> {
+        configure_main_vault::handle_configure_treasury_account(ctx)
+    }
+
     pub fn configure_secondary_vault(
         ctx: Context<ConfigureSecondaryVault>,
         values: ConfigureSecondaryVaultValues,

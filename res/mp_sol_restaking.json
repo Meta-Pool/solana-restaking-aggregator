@@ -193,6 +193,42 @@
       ]
     },
     {
+      "name": "configure_treasury_account",
+      "discriminator": [
+        13,
+        34,
+        28,
+        153,
+        29,
+        119,
+        81,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "main_state"
+          ]
+        },
+        {
+          "name": "main_state",
+          "writable": true
+        },
+        {
+          "name": "mpsol_mint",
+          "relations": [
+            "main_state"
+          ]
+        },
+        {
+          "name": "treasury_mpsol_account"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "create_secondary_vault",
       "discriminator": [
         102,
@@ -1916,12 +1952,6 @@
             "name": "performance_fee_bp",
             "type": {
               "option": "u16"
-            }
-          },
-          {
-            "name": "treasury_mpsol_account",
-            "type": {
-              "option": "pubkey"
             }
           },
           {

@@ -19,8 +19,9 @@ pub struct Unstake<'info> {
 
     #[account(mut)]
     pub mpsol_mint: Box<Account<'info, Mint>>,
-    #[account(mut, token::mint = mpsol_mint)]
-    pub treasury_mpsol_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    /// CHECK: compare to set acc in main state
+    pub treasury_mpsol_account: UncheckedAccount<'info>,
 
     #[account(init, payer = unstaker, space = 8 + UnstakeTicket::INIT_SPACE)]
     pub new_ticket_account: Account<'info, UnstakeTicket>,
