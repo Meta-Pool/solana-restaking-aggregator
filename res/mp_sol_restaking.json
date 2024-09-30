@@ -1272,6 +1272,10 @@
           ]
         },
         {
+          "name": "treasury_mpsol_account",
+          "writable": true
+        },
+        {
           "name": "new_ticket_account",
           "writable": true,
           "signer": true

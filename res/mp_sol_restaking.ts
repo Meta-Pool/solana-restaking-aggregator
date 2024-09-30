@@ -1278,6 +1278,10 @@ export type MpSolRestaking = {
           ]
         },
         {
+          "name": "treasuryMpsolAccount",
+          "writable": true
+        },
+        {
           "name": "newTicketAccount",
           "writable": true,
           "signer": true
