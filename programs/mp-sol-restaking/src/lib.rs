@@ -46,17 +46,40 @@ pub mod mp_sol_restaking {
         create_secondary_vault::handle_create_secondary_vault(ctx)
     }
 
-    pub fn configure_main_vault(
-        ctx: Context<ConfigureMainVault>,
-        values: ConfigureMainVaultValues,
-    ) -> Result<()> {
-        configure_main_vault::handle_configure_main_vault(ctx, values)
-    }
+    // ---------------------------------
+    // configure_main_vault
 
     pub fn configure_treasury_account(ctx: Context<ConfigureTreasuryAccount>) -> Result<()> {
         configure_main_vault::handle_configure_treasury_account(ctx)
     }
 
+    pub fn configure_unstake_waiting_hours(
+        ctx: Context<ConfigureUnstakeWaitingHours>,
+        hours: u16,
+    ) -> Result<()> {
+        configure_main_vault::handle_configure_unstake_waiting_hours(ctx, hours)
+    }
+
+    pub fn configure_withdrawal_fee(ctx: Context<ConfigureWithdrawalFee>, bp: u16) -> Result<()> {
+        configure_main_vault::handle_configure_withdrawal_fee(ctx, bp)
+    }
+
+    pub fn configure_performance_fee(ctx: Context<ConfigurePerformanceFee>, bp: u16) -> Result<()> {
+        configure_main_vault::handle_configure_performance_fee(ctx, bp)
+    }
+
+    pub fn configure_operator_auth(
+        ctx: Context<ConfigureOperatorAuth>,
+        auth: Pubkey,
+    ) -> Result<()> {
+        configure_main_vault::handle_configure_operator_auth(ctx, auth)
+    }
+
+    pub fn configure_new_admin(ctx: Context<ConfigureNewAdmin>, new_admin: Pubkey) -> Result<()> {
+        configure_main_vault::handle_configure_new_admin(ctx, new_admin)
+    }
+
+    // ---------------------------------
     pub fn configure_secondary_vault(
         ctx: Context<ConfigureSecondaryVault>,
         values: ConfigureSecondaryVaultValues,
