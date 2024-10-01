@@ -4,7 +4,7 @@
     "name": "mp_sol_restaking",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "mpSOL restaking yield agregator - The best yield aggregator on Solana. Built for smart stakers who like money"
+    "description": "mpSOL restaking yield aggregator - The best yield aggregator on Solana. Built for smart stakers who like money"
   },
   "instructions": [
     {
