@@ -31,15 +31,47 @@ pub struct Unstake<'info> {
 }
 
 pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
-    // compute withdrawal fee
-    let withdrawal_fee_mpsol = {
+    // compute effective withdrawal fee
+    let withdrawal_fee_mpsol: u64 = {
+        // if the treasury account is set...
         if let Some(treasury_mpsol_account) = ctx.accounts.main_state.treasury_mpsol_account {
             require_keys_eq!(
                 treasury_mpsol_account,
                 ctx.accounts.treasury_mpsol_account.key(),
                 ErrorCode::InvalidTreasuryMpsolAccount
             );
-            apply_bp(mpsol_amount, ctx.accounts.main_state.withdraw_fee_bp)
+            let computed_withdrawal_fee_mpsol =
+                apply_bp(mpsol_amount, ctx.accounts.main_state.withdraw_fee_bp);
+            // transfer withdrawal_fee_mpsol to treasury
+            if computed_withdrawal_fee_mpsol > 0 {
+                let result = anchor_spl::token::transfer(
+                    CpiContext::new(
+                        ctx.accounts.token_program.to_account_info(),
+                        Transfer {
+                            from: ctx.accounts.unstaker_mpsol_account.to_account_info(),
+                            to: ctx.accounts.treasury_mpsol_account.to_account_info(),
+                            authority: ctx.accounts.unstaker.to_account_info(),
+                        },
+                    ),
+                    computed_withdrawal_fee_mpsol,
+                );
+                if result.is_ok() {
+                    computed_withdrawal_fee_mpsol
+                } else {
+                    // in order to keep the protocol permissionless,
+                    // we do not fail the transaction if transfer to treasury fails.
+                    // We avoid the possibility of a rogue admin
+                    // blocking withdrawals by setting an invalid account as treasury account.
+                    // Just log a message but do not fail the transaction
+                    msg!(
+                        "transfer to treasury_mpsol_account failed {}",
+                        result.unwrap_err(),
+                    );
+                    0
+                }
+            } else {
+                0
+            }
         } else {
             0
         }
@@ -78,22 +110,6 @@ pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
     ctx.accounts.main_state.backing_sol_value -= ticket_sol_value;
     // -------
 
-    // transfer withdrawal_fee_mpsol to treas
-    // Transfer tokens from vault to strat lst
-    if withdrawal_fee_mpsol > 0 {
-        anchor_spl::token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                Transfer {
-                    from: ctx.accounts.unstaker_mpsol_account.to_account_info(),
-                    to: ctx.accounts.treasury_mpsol_account.to_account_info(),
-                    authority: ctx.accounts.unstaker.to_account_info(),
-                },
-            ),
-            withdrawal_fee_mpsol,
-        )?;
-    }
-
     // compute ticket due timestamp
     let now_ts = Clock::get().unwrap().unix_timestamp as u64;
     let ticket_due_timestamp =
@@ -119,6 +135,7 @@ pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
         main_state: ctx.accounts.main_state.key(),
         unstaker: ctx.accounts.unstaker.key(),
         mpsol_amount: mpsol_amount,
+        withdrawal_fee_mpsol,
         ticket_account: ctx.accounts.new_ticket_account.key(),
         ticket_sol_value,
         unstaker_mpsol_account: ctx.accounts.unstaker_mpsol_account.key(),

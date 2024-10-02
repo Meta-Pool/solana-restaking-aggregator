@@ -1,7 +1,3 @@
-// use crate::error::ErrorCode;
-// use anchor_lang::prelude::*;
-// use anchor_lang::{require_gte, solana_program::clock::Clock};
-
 pub const TWO_POW_32: u64 = 0x1_0000_0000; // 32-bit price precision, to store a LST/SOL price in u64
 
 pub const BASIS_POINTS_100_PERCENT: u16 = 10_000;
