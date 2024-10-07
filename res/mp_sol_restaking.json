@@ -103,6 +103,33 @@
       "args": []
     },
     {
+      "name": "clear_treasury_account",
+      "discriminator": [
+        115,
+        234,
+        105,
+        126,
+        163,
+        109,
+        73,
+        78
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "main_state"
+          ]
+        },
+        {
+          "name": "main_state",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "configure_new_admin",
       "discriminator": [
         63,
@@ -275,12 +302,6 @@
         {
           "name": "main_state",
           "writable": true
-        },
-        {
-          "name": "mpsol_mint",
-          "relations": [
-            "main_state"
-          ]
         },
         {
           "name": "treasury_mpsol_account"
@@ -778,68 +799,6 @@
           "type": "pubkey"
         }
       ]
-    },
-    {
-      "name": "remove_freeze_auth",
-      "discriminator": [
-        141,
-        21,
-        189,
-        59,
-        188,
-        23,
-        164,
-        167
-      ],
-      "accounts": [
-        {
-          "name": "admin",
-          "signer": true,
-          "relations": [
-            "main_state"
-          ]
-        },
-        {
-          "name": "main_state"
-        },
-        {
-          "name": "mpsol_mint",
-          "writable": true,
-          "relations": [
-            "main_state"
-          ]
-        },
-        {
-          "name": "mpsol_mint_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "main_state"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  105,
-                  110,
-                  45,
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "token_program",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": []
     },
     {
       "name": "set_next_withdraw_amount",
@@ -2411,6 +2370,10 @@
             "type": "u64"
           },
           {
+            "name": "withdrawal_fee_mpsol",
+            "type": "u64"
+          },
+          {
             "name": "unstaker_mpsol_account",
             "type": "pubkey"
           },
@@ -2505,6 +2468,10 @@
           },
           {
             "name": "main_vault_backing_sol_value",
+            "type": "u64"
+          },
+          {
+            "name": "performance_fee_mpsol_amount",
             "type": "u64"
           }
         ]
