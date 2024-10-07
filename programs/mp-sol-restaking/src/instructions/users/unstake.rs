@@ -1,6 +1,7 @@
-use crate::{constants::*, error::ErrorCode, MainVaultState, UnstakeTicket};
-use anchor_lang::prelude::*;
-use anchor_lang::solana_program::pubkey::Pubkey;
+use crate::{
+    constants::*, error::ErrorCode, verify_treasury_mp_sol_balance, MainVaultState, UnstakeTicket,
+};
+use anchor_lang::{prelude::*, solana_program::pubkey::Pubkey};
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount, Transfer};
 use shared_lib::{apply_bp, mpsol_amount_to_sol_value};
 
@@ -44,29 +45,30 @@ pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
                 apply_bp(mpsol_amount, ctx.accounts.main_state.withdraw_fee_bp);
             // transfer withdrawal_fee_mpsol to treasury
             if computed_withdrawal_fee_mpsol > 0 {
-                let result = anchor_spl::token::transfer(
-                    CpiContext::new(
-                        ctx.accounts.token_program.to_account_info(),
-                        Transfer {
-                            from: ctx.accounts.unstaker_mpsol_account.to_account_info(),
-                            to: ctx.accounts.treasury_mpsol_account.to_account_info(),
-                            authority: ctx.accounts.unstaker.to_account_info(),
-                        },
-                    ),
-                    computed_withdrawal_fee_mpsol,
-                );
-                if result.is_ok() {
+                // if the treasury account is valid
+                if verify_treasury_mp_sol_balance(
+                    &ctx.accounts.main_state.mpsol_mint.key(),
+                    &ctx.accounts.treasury_mpsol_account,
+                )
+                .is_some()
+                {
+                    anchor_spl::token::transfer(
+                        CpiContext::new(
+                            ctx.accounts.token_program.to_account_info(),
+                            Transfer {
+                                from: ctx.accounts.unstaker_mpsol_account.to_account_info(),
+                                to: ctx.accounts.treasury_mpsol_account.to_account_info(),
+                                authority: ctx.accounts.unstaker.to_account_info(),
+                            },
+                        ),
+                        computed_withdrawal_fee_mpsol,
+                    )?;
                     computed_withdrawal_fee_mpsol
                 } else {
                     // in order to keep the protocol permissionless,
-                    // we do not fail the transaction if transfer to treasury fails.
+                    // we do not fail the transaction if the treasury account is not ready.
                     // We avoid the possibility of a rogue admin
                     // blocking withdrawals by setting an invalid account as treasury account.
-                    // Just log a message but do not fail the transaction
-                    msg!(
-                        "transfer to treasury_mpsol_account failed {}",
-                        result.unwrap_err(),
-                    );
                     0
                 }
             } else {

@@ -1,6 +1,7 @@
 use crate::{
-    constants::*, error::ErrorCode, external::common_strategy_state, MainVaultState,
-    SecondaryVaultState, VaultStrategyRelationEntry,
+    constants::*, error::ErrorCode, external::common_strategy_state,
+    verify_treasury_mp_sol_balance, MainVaultState, SecondaryVaultState,
+    VaultStrategyRelationEntry,
 };
 use anchor_lang::prelude::*;
 use anchor_spl::token::{mint_to, Mint, MintTo, Token, TokenAccount};
@@ -189,41 +190,39 @@ pub fn handle_update_attached_strat_lst_amount(
         performance_fee_mpsol_amount
     });
 
+    // performance fee
     if performance_fee_mpsol_amount > 0 {
+        // if treasury account is set
         if let Some(treasury_mpsol_account) = ctx.accounts.main_state.treasury_mpsol_account {
             require_keys_eq!(
                 treasury_mpsol_account,
                 ctx.accounts.treasury_mpsol_account.key(),
                 ErrorCode::InvalidTreasuryMpsolAccount
             );
-            // performance fee
-            // mint mpSOL for the protocol treasury
-            let result = mint_to(
-                CpiContext::new_with_signer(
-                    ctx.accounts.token_program.to_account_info(),
-                    MintTo {
-                        mint: ctx.accounts.mpsol_mint.to_account_info(),
-                        to: ctx.accounts.treasury_mpsol_account.to_account_info(),
-                        authority: ctx.accounts.mpsol_mint_authority.to_account_info(),
-                    },
-                    &[&[
-                        &ctx.accounts.main_state.key().to_bytes(),
-                        MAIN_VAULT_MINT_AUTH_SEED,
-                        &[ctx.bumps.mpsol_mint_authority],
-                    ]],
-                ),
-                performance_fee_mpsol_amount,
-            );
-            if result.is_err() {
-                // in order to keep the protocol permissionless,
-                // we do not fail the transaction if mint to treasury fails.
-                // We avoid the possibility of a rogue admin
-                // blocking withdrawals by setting an invalid account as treasury account.
-                // Just log a message but do not fail the transaction
-                msg!(
-                    "mint to treasury_mpsol_account failed {}",
-                    result.unwrap_err(),
-                );
+            // if the treasury account is valid
+            if verify_treasury_mp_sol_balance(
+                &ctx.accounts.main_state.mpsol_mint.key(),
+                &ctx.accounts.treasury_mpsol_account,
+            )
+            .is_some()
+            {
+                // mint mpSOL for the protocol treasury
+                mint_to(
+                    CpiContext::new_with_signer(
+                        ctx.accounts.token_program.to_account_info(),
+                        MintTo {
+                            mint: ctx.accounts.mpsol_mint.to_account_info(),
+                            to: ctx.accounts.treasury_mpsol_account.to_account_info(),
+                            authority: ctx.accounts.mpsol_mint_authority.to_account_info(),
+                        },
+                        &[&[
+                            &ctx.accounts.main_state.key().to_bytes(),
+                            MAIN_VAULT_MINT_AUTH_SEED,
+                            &[ctx.bumps.mpsol_mint_authority],
+                        ]],
+                    ),
+                    performance_fee_mpsol_amount,
+                )?;
             }
         }
     }
