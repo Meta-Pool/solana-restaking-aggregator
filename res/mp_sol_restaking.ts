@@ -10,7 +10,7 @@ export type MpSolRestaking = {
     "name": "mpSolRestaking",
     "version": "0.1.0",
     "spec": "0.1.0",
-    "description": "mpSOL restaking yield agregator - The best yield aggregator on Solana. Built for smart stakers who like money"
+    "description": "mpSOL restaking yield aggregator - The best yield aggregator on Solana. Built for smart stakers who like money"
   },
   "instructions": [
     {
@@ -109,16 +109,43 @@ export type MpSolRestaking = {
       "args": []
     },
     {
-      "name": "configureMainVault",
+      "name": "clearTreasuryAccount",
       "discriminator": [
-        202,
-        251,
-        130,
-        150,
-        135,
-        244,
-        102,
-        232
+        115,
+        234,
+        105,
+        126,
+        163,
+        109,
+        73,
+        78
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "configureNewAdmin",
+      "discriminator": [
+        63,
+        120,
+        155,
+        169,
+        35,
+        243,
+        35,
+        144
       ],
       "accounts": [
         {
@@ -135,12 +162,72 @@ export type MpSolRestaking = {
       ],
       "args": [
         {
-          "name": "values",
-          "type": {
-            "defined": {
-              "name": "configureMainVaultValues"
-            }
-          }
+          "name": "newAdmin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "configureOperatorAuth",
+      "discriminator": [
+        69,
+        200,
+        168,
+        198,
+        155,
+        185,
+        46,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "auth",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "configurePerformanceFee",
+      "discriminator": [
+        212,
+        34,
+        6,
+        26,
+        163,
+        255,
+        86,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "bp",
+          "type": "u16"
         }
       ]
     },
@@ -195,6 +282,100 @@ export type MpSolRestaking = {
               "name": "configureSecondaryVaultValues"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "configureTreasuryAccount",
+      "discriminator": [
+        13,
+        34,
+        28,
+        153,
+        29,
+        119,
+        81,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState",
+          "writable": true
+        },
+        {
+          "name": "treasuryMpsolAccount"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "configureUnstakeWaitingHours",
+      "discriminator": [
+        235,
+        181,
+        71,
+        188,
+        177,
+        89,
+        200,
+        98
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "hours",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "configureWithdrawalFee",
+      "discriminator": [
+        195,
+        174,
+        127,
+        189,
+        202,
+        1,
+        12,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "mainState"
+          ]
+        },
+        {
+          "name": "mainState",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "bp",
+          "type": "u16"
         }
       ]
     },
@@ -624,68 +805,6 @@ export type MpSolRestaking = {
           "type": "pubkey"
         }
       ]
-    },
-    {
-      "name": "removeFreezeAuth",
-      "discriminator": [
-        141,
-        21,
-        189,
-        59,
-        188,
-        23,
-        164,
-        167
-      ],
-      "accounts": [
-        {
-          "name": "admin",
-          "signer": true,
-          "relations": [
-            "mainState"
-          ]
-        },
-        {
-          "name": "mainState"
-        },
-        {
-          "name": "mpsolMint",
-          "writable": true,
-          "relations": [
-            "mainState"
-          ]
-        },
-        {
-          "name": "mpsolMintAuthority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "mainState"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  105,
-                  110,
-                  45,
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        }
-      ],
-      "args": []
     },
     {
       "name": "setNextWithdrawAmount",
@@ -1276,6 +1395,10 @@ export type MpSolRestaking = {
           "relations": [
             "mainState"
           ]
+        },
+        {
+          "name": "treasuryMpsolAccount",
+          "writable": true
         },
         {
           "name": "newTicketAccount",
@@ -1898,44 +2021,6 @@ export type MpSolRestaking = {
   ],
   "types": [
     {
-      "name": "configureMainVaultValues",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "unstakeTicketWaitingHours",
-            "type": {
-              "option": "u16"
-            }
-          },
-          {
-            "name": "withdrawFeeBp",
-            "type": {
-              "option": "u16"
-            }
-          },
-          {
-            "name": "performanceFeeBp",
-            "type": {
-              "option": "u16"
-            }
-          },
-          {
-            "name": "treasuryMpsolAccount",
-            "type": {
-              "option": "pubkey"
-            }
-          },
-          {
-            "name": "newAdminPubkey",
-            "type": {
-              "option": "pubkey"
-            }
-          }
-        ]
-      }
-    },
-    {
       "name": "configureSecondaryVaultValues",
       "type": {
         "kind": "struct",
@@ -2291,6 +2376,10 @@ export type MpSolRestaking = {
             "type": "u64"
           },
           {
+            "name": "withdrawalFeeMpsol",
+            "type": "u64"
+          },
+          {
             "name": "unstakerMpsolAccount",
             "type": "pubkey"
           },
@@ -2385,6 +2474,10 @@ export type MpSolRestaking = {
           },
           {
             "name": "mainVaultBackingSolValue",
+            "type": "u64"
+          },
+          {
+            "name": "performanceFeeMpsolAmount",
             "type": "u64"
           }
         ]

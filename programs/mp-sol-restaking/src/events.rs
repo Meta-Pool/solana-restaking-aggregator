@@ -20,6 +20,7 @@ pub struct UnstakeEvent {
     pub main_state: Pubkey,
     pub unstaker: Pubkey,
     pub mpsol_amount: u64,
+    pub withdrawal_fee_mpsol: u64,
     pub unstaker_mpsol_account: Pubkey,
     pub mpsol_burned: u64,
     pub ticket_account: Pubkey,
@@ -51,6 +52,7 @@ pub struct UpdateAttachedStratLstAmountEvent {
     pub new_lst_amount: u64,
     pub lst_price_p32: u64,
     pub main_vault_backing_sol_value: u64,
+    pub performance_fee_mpsol_amount: u64,
 }
 
 #[event]

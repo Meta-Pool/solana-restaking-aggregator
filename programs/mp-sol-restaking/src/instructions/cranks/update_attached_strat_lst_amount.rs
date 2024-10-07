@@ -92,8 +92,9 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     )]
     pub mpsol_mint_authority: UncheckedAccount<'info>,
 
-    #[account(mut, token::mint = mpsol_mint)]
-    pub treasury_mpsol_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    /// CHECK: compare to set acc in main state
+    pub treasury_mpsol_account: UncheckedAccount<'info>,
 
     pub token_program: Program<'info, Token>,
 }
@@ -166,16 +167,6 @@ pub fn handle_update_attached_strat_lst_amount(
         .vault_strategy_relation_entry
         .last_read_strat_lst_amount = strat_reported_lst_amount;
 
-    emit!(crate::events::UpdateAttachedStratLstAmountEvent {
-        main_state: ctx.accounts.main_state.key(),
-        lst_mint: ctx.accounts.lst_mint.key(),
-        vault_strategy_relation_entry: ctx.accounts.vault_strategy_relation_entry.key(),
-        old_lst_amount: last_read_lst_amount,
-        new_lst_amount: strat_reported_lst_amount,
-        lst_price_p32: ctx.accounts.vault_state.lst_sol_price_p32,
-        main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
-    });
-
     // compute protocol fees
     let performance_fee_mpsol_amount = {
         let performance_fee_sol_value =
@@ -187,6 +178,17 @@ pub fn handle_update_attached_strat_lst_amount(
         )
     };
 
+    emit!(crate::events::UpdateAttachedStratLstAmountEvent {
+        main_state: ctx.accounts.main_state.key(),
+        lst_mint: ctx.accounts.lst_mint.key(),
+        vault_strategy_relation_entry: ctx.accounts.vault_strategy_relation_entry.key(),
+        old_lst_amount: last_read_lst_amount,
+        new_lst_amount: strat_reported_lst_amount,
+        lst_price_p32: ctx.accounts.vault_state.lst_sol_price_p32,
+        main_vault_backing_sol_value: ctx.accounts.main_state.backing_sol_value,
+        performance_fee_mpsol_amount
+    });
+
     if performance_fee_mpsol_amount > 0 {
         if let Some(treasury_mpsol_account) = ctx.accounts.main_state.treasury_mpsol_account {
             require_keys_eq!(
@@ -194,10 +196,9 @@ pub fn handle_update_attached_strat_lst_amount(
                 ctx.accounts.treasury_mpsol_account.key(),
                 ErrorCode::InvalidTreasuryMpsolAccount
             );
-
             // performance fee
             // mint mpSOL for the protocol treasury
-            mint_to(
+            let result = mint_to(
                 CpiContext::new_with_signer(
                     ctx.accounts.token_program.to_account_info(),
                     MintTo {
@@ -212,7 +213,18 @@ pub fn handle_update_attached_strat_lst_amount(
                     ]],
                 ),
                 performance_fee_mpsol_amount,
-            )?;
+            );
+            if result.is_err() {
+                // in order to keep the protocol permissionless,
+                // we do not fail the transaction if mint to treasury fails.
+                // We avoid the possibility of a rogue admin
+                // blocking withdrawals by setting an invalid account as treasury account.
+                // Just log a message but do not fail the transaction
+                msg!(
+                    "mint to treasury_mpsol_account failed {}",
+                    result.unwrap_err(),
+                );
+            }
         }
     }
 

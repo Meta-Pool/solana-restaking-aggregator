@@ -1,7 +1,7 @@
 [package]
 name = "mp-sol-restaking"
 version = "0.1.0"
-description = "mpSOL restaking yield agregator - The best yield aggregator on Solana. Built for smart stakers who like money"
+description = "mpSOL restaking yield aggregator - The best yield aggregator on Solana. Built for smart stakers who like money"
 edition = "2021"
 
 [lib]
