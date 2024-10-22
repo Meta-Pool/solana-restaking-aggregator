@@ -25,11 +25,10 @@ pub struct VaultStrategyRelationEntry {
     /// target amount for the next withdraw
     /// the strat should wind-down positions so this amount can be withdrawn
     /// once withdrawn (call to strat-program) and in the same tx, set this value to zero
+    /// withdraw also increases "vault.locally_stored_amount" to cover "vault.tickets_target_sol_amount"
     pub next_withdraw_lst_amount: u64,
 
-    /// "tickets_target_sol_amount" is set by the ticket-fulfiller crank, so the strat removes tokens from external-programs
-    /// increasing "locally_stored_amount" until it covers "tickets_target_sol_amount"
-    /// in order to compute how much tokens are free to send to external-programs, do: locally_stored_amount - lst_value(tickets_target_sol_amount)
+    /// reference only: "tickets_target_sol_amount" is set by the ticket-fulfiller
     pub tickets_target_sol_amount: u64,
 
     /// last computation of lst-token amount in the strategy.
