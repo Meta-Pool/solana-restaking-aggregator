@@ -12,3 +12,7 @@ read -p "Press Enter to continue" </dev/tty
 solana program write-buffer \
     -u mainnet-beta \
     target/deploy/$PROGRAM_LIB_NAME.so
+echo --
+echo "IF the write failed, please do"
+echo "solana-keygen recover -o buffer-signer.json"
+echo "to preserve the buffer private key (so you can recreate the same buffer address if needed)"

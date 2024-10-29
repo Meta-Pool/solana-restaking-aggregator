@@ -8,3 +8,5 @@ test-genesis/generated-data
 .yarn
 docker-target
 buffer-signer.json
+buffer-seed.txt
+
