@@ -12,6 +12,7 @@
         "DEVYT7nSvD4gzP6BH2N1ubUamErS4TXtBYwdVrFBBVr",
         "dialoguer",
         "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        "HUBSOL",
         "JITO",
         "Jito4APyf642JPZPx3hGc6WWJ8zPKtRbRs4P815Awbb",
         "Keypair",
@@ -59,7 +60,6 @@
         "yarn.lock",
         "**/.cargo/*",
         "**/res/*"
-
     ],
     "typescript.tsdk": "node_modules/typescript/lib",
 }

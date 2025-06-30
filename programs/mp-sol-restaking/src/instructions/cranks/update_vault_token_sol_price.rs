@@ -36,7 +36,9 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
 pub const HUBSOL_MINT: Pubkey = pubkey!("HUBsveNpjo5pWqNkH57QzxjQASdTVXcSK7bVKTSZtcSX");
-pub const HUBSOL_PROGRAM: Pubkey = pubkey!("SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY");
+// https://learn.sanctum.so/docs/creating-your-own-lst-with-sanctum/why-are-there-3-stake-pool-deployments
+pub const SANCTUM_SPL_1: Pubkey = pubkey!("SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY");
+pub const SANCTUM_SPL_2: Pubkey = pubkey!("SPMBzsVUuoHA4Jm6KunbsotaahvVikZs1JyTW6iJvbn");
 
 pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
     // obtain lst-state account info if required
@@ -81,15 +83,20 @@ fn marinade_msol_price(lst_state: Option<AccountInfo>) -> Result<u64> {
 fn spl_stake_pool_price(
     lst_state: Option<AccountInfo>,
     lst_mint: Pubkey,
-    program_id: Pubkey,
 ) -> Result<u64> {
     // verify owner program & data_len
     let lst_state = lst_state.expect("must provide spl-stake-pool state at remaining_accounts[0]");
-    require_keys_eq!(
-        *lst_state.owner,
-        program_id,
+
+    // lst_state.owner must be one of: SPL_STAKE_POOL_PROGRAM, SANCTUM_SPL_1 or SANCTUM_SPL_2
+    let program_id = lst_state.owner.key();
+    require!(
+        program_id == SPL_STAKE_POOL_PROGRAM
+            || program_id == SANCTUM_SPL_1
+            || program_id == SANCTUM_SPL_2,
         ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
     );
+
+
     // try deserialize
     let mut data_slice = &lst_state.data.borrow()[..];
     let spl_stake_pool_state: SplStakePoolState = SplStakePoolState::deserialize(&mut data_slice)?;
@@ -124,13 +131,11 @@ pub fn internal_update_vault_token_sol_price(
         WSOL_MINT => TWO_POW_32,
         // mSol, read marinade state
         MARINADE_MSOL_MINT => marinade_msol_price(lst_state)?,
-        // TODO: Inf/Sanctum
-        HUBSOL_MINT => spl_stake_pool_price(lst_state, HUBSOL_MINT, HUBSOL_PROGRAM)?,
         // none of the above, try a generic SPL-stake-pool
+        // or Sanctum stake pools
         _ => spl_stake_pool_price(
             lst_state,
-            secondary_state.lst_mint.key(),
-            SPL_STAKE_POOL_PROGRAM,
+            secondary_state.lst_mint.key()
         )?,
     };
 
