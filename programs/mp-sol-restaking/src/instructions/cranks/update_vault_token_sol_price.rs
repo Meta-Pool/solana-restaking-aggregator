@@ -35,7 +35,6 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
-pub const HUBSOL_MINT: Pubkey = pubkey!("HUBsveNpjo5pWqNkH57QzxjQASdTVXcSK7bVKTSZtcSX");
 // https://learn.sanctum.so/docs/creating-your-own-lst-with-sanctum/why-are-there-3-stake-pool-deployments
 pub const SANCTUM_SPL_1: Pubkey = pubkey!("SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY");
 pub const SANCTUM_SPL_2: Pubkey = pubkey!("SPMBzsVUuoHA4Jm6KunbsotaahvVikZs1JyTW6iJvbn");
@@ -80,10 +79,7 @@ fn marinade_msol_price(lst_state: Option<AccountInfo>) -> Result<u64> {
     Ok(marinade_state.msol_price)
 }
 
-fn spl_stake_pool_price(
-    lst_state: Option<AccountInfo>,
-    lst_mint: Pubkey,
-) -> Result<u64> {
+fn spl_stake_pool_price(lst_state: Option<AccountInfo>, lst_mint: Pubkey) -> Result<u64> {
     // verify owner program & data_len
     let lst_state = lst_state.expect("must provide spl-stake-pool state at remaining_accounts[0]");
 
@@ -95,7 +91,6 @@ fn spl_stake_pool_price(
             || program_id == SANCTUM_SPL_2,
         ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
     );
-
 
     // try deserialize
     let mut data_slice = &lst_state.data.borrow()[..];
@@ -133,10 +128,7 @@ pub fn internal_update_vault_token_sol_price(
         MARINADE_MSOL_MINT => marinade_msol_price(lst_state)?,
         // none of the above, try a generic SPL-stake-pool
         // or Sanctum stake pools
-        _ => spl_stake_pool_price(
-            lst_state,
-            secondary_state.lst_mint.key()
-        )?,
+        _ => spl_stake_pool_price(lst_state, secondary_state.lst_mint.key())?,
     };
 
     secondary_state.lst_sol_price_timestamp = Clock::get().unwrap().unix_timestamp as u64;
