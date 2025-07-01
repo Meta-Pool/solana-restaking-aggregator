@@ -35,6 +35,10 @@ pub struct UpdateVaultTokenSolPrice<'info> {
 
 pub const WSOL_MINT: Pubkey = pubkey!("So11111111111111111111111111111111111111112");
 
+// https://learn.sanctum.so/docs/creating-your-own-lst-with-sanctum/why-are-there-3-stake-pool-deployments
+pub const SANCTUM_SPL_1: Pubkey = pubkey!("SP12tWFxD9oJsVWNavTTBZvMbA6gkAmxtVgxdqvyvhY");
+pub const SANCTUM_SPL_2: Pubkey = pubkey!("SPMBzsVUuoHA4Jm6KunbsotaahvVikZs1JyTW6iJvbn");
+
 pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice>) -> Result<()> {
     // obtain lst-state account info if required
     let lst_state = match ctx.accounts.lst_mint.key() {
@@ -58,6 +62,57 @@ pub fn handle_update_vault_token_sol_price(ctx: Context<UpdateVaultTokenSolPrice
     )
 }
 
+fn marinade_msol_price(lst_state: Option<AccountInfo>) -> Result<u64> {
+    let lst_state = lst_state.expect("must provide marinade state at remaining_accounts[0]");
+    // marinade state address is known, verify
+    require_keys_eq!(
+        *lst_state.key,
+        MARINADE_STATE_ADDRESS,
+        ErrorCode::IncorrectMarinadeStateAddress
+    );
+    // try deserialize
+    let mut data_slice = &lst_state.data.borrow()[..];
+    let marinade_state: MarinadeState = MarinadeState::deserialize(&mut data_slice)?;
+    // compute true price = total_lamports / pool_token_supply
+    // https://docs.marinade.finance/marinade-protocol/system-overview/msol-token#msol-price
+    // marinade already uses 32-bit precision price
+    Ok(marinade_state.msol_price)
+}
+
+fn spl_stake_pool_price(lst_state: Option<AccountInfo>, lst_mint: Pubkey) -> Result<u64> {
+    // verify owner program & data_len
+    let lst_state = lst_state.expect("must provide spl-stake-pool state at remaining_accounts[0]");
+
+    // lst_state.owner must be one of: SPL_STAKE_POOL_PROGRAM, SANCTUM_SPL_1 or SANCTUM_SPL_2
+    let program_id = lst_state.owner.key();
+    require!(
+        program_id == SPL_STAKE_POOL_PROGRAM
+            || program_id == SANCTUM_SPL_1
+            || program_id == SANCTUM_SPL_2,
+        ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
+    );
+
+    // try deserialize
+    let mut data_slice = &lst_state.data.borrow()[..];
+    let spl_stake_pool_state: SplStakePoolState = SplStakePoolState::deserialize(&mut data_slice)?;
+    // debug log show data
+    // msg!("stake_pool={:?}", spl_stake_pool_state);
+    // verify mint
+    require_keys_eq!(spl_stake_pool_state.pool_mint, lst_mint);
+    // verify type
+    require!(
+        spl_stake_pool_state.account_type == AccountType::StakePool,
+        ErrorCode::AccountTypeIsNotStakePool
+    );
+    // compute true price = total_lamports / pool_token_supply
+    // with 32-bit precision
+    Ok(mul_div(
+        spl_stake_pool_state.total_lamports,
+        TWO_POW_32,
+        spl_stake_pool_state.pool_token_supply,
+    ))
+}
+
 pub fn internal_update_vault_token_sol_price(
     main_state: &mut Account<MainVaultState>,
     secondary_state: &mut Account<SecondaryVaultState>,
@@ -69,61 +124,11 @@ pub fn internal_update_vault_token_sol_price(
     let new_price_p32 = match secondary_state.lst_mint.key() {
         // wSol is simple, always 1
         WSOL_MINT => TWO_POW_32,
-
         // mSol, read marinade state
-        MARINADE_MSOL_MINT => {
-            let lst_state =
-                lst_state.expect("must provide marinade state at remaining_accounts[0]");
-            // marinade state address is known, verify
-            require_keys_eq!(
-                *lst_state.key,
-                MARINADE_STATE_ADDRESS,
-                ErrorCode::IncorrectMarinadeStateAddress
-            );
-            // try deserialize
-            let mut data_slice = &lst_state.data.borrow()[..];
-            let marinade_state: MarinadeState = MarinadeState::deserialize(&mut data_slice)?;
-            // compute true price = total_lamports / pool_token_supply
-            // https://docs.marinade.finance/marinade-protocol/system-overview/msol-token#msol-price
-            // marinade already uses 32-bit precision price
-            marinade_state.msol_price
-        }
-        // TODO: Inf/Sanctum
-        ,
-        _ => {
-            // none of the above, try a generic SPL-stake-pool
-            // verify owner program & data_len
-            let lst_state =
-                lst_state.expect("must provide spl-stake-pool state at remaining_accounts[0]");
-            require_keys_eq!(
-                *lst_state.owner,
-                SPL_STAKE_POOL_PROGRAM,
-                ErrorCode::SplStakePoolStateAccountOwnerIsNotTheSplStakePoolProgram
-            );
-            // try deserialize
-            let mut data_slice = &lst_state.data.borrow()[..];
-            let spl_stake_pool_state: SplStakePoolState =
-                SplStakePoolState::deserialize(&mut data_slice)?;
-            // debug log show data
-            // msg!("stake_pool={:?}", spl_stake_pool_state);
-            // verify mint
-            require_keys_eq!(
-                spl_stake_pool_state.pool_mint,
-                secondary_state.lst_mint.key()
-            );
-            // verify type
-            require!(
-                spl_stake_pool_state.account_type == AccountType::StakePool,
-                ErrorCode::AccountTypeIsNotStakePool
-            );
-            // compute true price = total_lamports / pool_token_supply
-            // with 32-bit precision
-            mul_div(
-                spl_stake_pool_state.total_lamports,
-                TWO_POW_32,
-                spl_stake_pool_state.pool_token_supply,
-            )
-        }
+        MARINADE_MSOL_MINT => marinade_msol_price(lst_state)?,
+        // none of the above, try a generic SPL-stake-pool
+        // or Sanctum stake pools
+        _ => spl_stake_pool_price(lst_state, secondary_state.lst_mint.key())?,
     };
 
     secondary_state.lst_sol_price_timestamp = Clock::get().unwrap().unix_timestamp as u64;
