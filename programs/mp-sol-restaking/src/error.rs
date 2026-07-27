@@ -89,4 +89,13 @@ pub enum ErrorCode {
 
     #[msg("Withdraw Fee Too High")]
     WithdrawFeeTooHigh,
+
+    #[msg("July 2026 incident accounts do not match the expected corrupted state")]
+    IncidentRecoveryStateMismatch,
+
+    #[msg("July 2026 incident recovery arithmetic failed")]
+    IncidentRecoveryArithmeticError,
+
+    #[msg("July 2026 incident recovery is pending")]
+    IncidentRecoveryPending,
 }

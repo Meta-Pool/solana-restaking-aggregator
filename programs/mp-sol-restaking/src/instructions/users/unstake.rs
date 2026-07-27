@@ -1,5 +1,6 @@
 use crate::{
-    constants::*, error::ErrorCode, verify_treasury_mp_sol_balance, MainVaultState, UnstakeTicket,
+    constants::*, error::ErrorCode, require_july_2026_incident_recovered,
+    verify_treasury_mp_sol_balance, MainVaultState, UnstakeTicket,
 };
 use anchor_lang::{prelude::*, solana_program::pubkey::Pubkey};
 use anchor_spl::token::{burn, Burn, Mint, Token, TokenAccount, Transfer};
@@ -32,6 +33,8 @@ pub struct Unstake<'info> {
 }
 
 pub fn handle_unstake(ctx: Context<Unstake>, mpsol_amount: u64) -> Result<()> {
+    require_july_2026_incident_recovered(&ctx.accounts.main_state)?;
+
     // compute effective withdrawal fee
     let withdrawal_fee_mpsol: u64 = {
         // if the treasury account is set...

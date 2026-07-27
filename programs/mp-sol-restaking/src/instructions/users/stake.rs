@@ -1,5 +1,8 @@
 use crate::internal_update_vault_token_sol_price;
-use crate::{constants::*, error::ErrorCode, MainVaultState, SecondaryVaultState};
+use crate::{
+    constants::*, error::ErrorCode, require_july_2026_incident_recovered, MainVaultState,
+    SecondaryVaultState,
+};
 /// Stake any of the supported LST tokens
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
@@ -65,6 +68,8 @@ pub struct Stake<'info> {
 
 /// amount is an lst amount
 pub fn handle_stake(ctx: Context<Stake>, lst_amount: u64, ref_code: u32) -> Result<()> {
+    require_july_2026_incident_recovered(&ctx.accounts.main_state)?;
+
     // check deposits are enabled in this secondary-vault
     require_eq!(
         ctx.accounts.vault_state.deposits_disabled,

@@ -1,4 +1,7 @@
-use crate::{constants::*, error::ErrorCode, MainVaultState, UnstakeTicket};
+use crate::{
+    constants::*, error::ErrorCode, require_july_2026_incident_recovered, MainVaultState,
+    UnstakeTicket,
+};
 use crate::{internal_update_vault_token_sol_price, SecondaryVaultState};
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
@@ -61,6 +64,8 @@ pub fn handle_ticket_claim(
     ctx: Context<TicketClaim>,
     withdraw_sol_value_amount: u64,
 ) -> Result<()> {
+    require_july_2026_incident_recovered(&ctx.accounts.main_state)?;
+
     // check ticket is due
     let now_ts = Clock::get().unwrap().unix_timestamp as u64;
     require_gte!(

@@ -104,6 +104,10 @@ pub mod mp_sol_restaking {
         attach_common_strategy_state::handle_attach_common_strategy_state(ctx)
     }
 
+    pub fn recover_july_2026_incident(ctx: Context<RecoverJuly2026Incident>) -> Result<()> {
+        recover_july_2026_incident::handle_recover_july_2026_incident(ctx)
+    }
+
     // ------------------
     // cranks
     // ------------------

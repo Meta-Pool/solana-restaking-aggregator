@@ -84,3 +84,15 @@ pub struct GetLstFromStratEvent {
     pub existent_amount: u64,
     pub lst_amount: u64,
 }
+
+#[event]
+pub struct July2026IncidentRecoveryEvent {
+    pub main_state: Pubkey,
+    pub fake_msol_amount: u64,
+    pub fake_msol_sol_value: u64,
+    pub burned_mpsol_amount: u64,
+    pub corrected_ticket_one_sol_value: u64,
+    pub corrected_ticket_two_sol_value: u64,
+    pub main_vault_backing_sol_value: u64,
+    pub outstanding_tickets_sol_value: u64,
+}
