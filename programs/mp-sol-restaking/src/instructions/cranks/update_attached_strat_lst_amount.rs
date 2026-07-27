@@ -33,6 +33,8 @@ pub struct UpdateAttachedStratLstAmount<'info> {
     /// vault->strat relation entry
     /// if this account exists, the common_strategy_state was correctly attached to the system
     #[account(mut,
+        has_one = main_state,
+        has_one = lst_mint,
         has_one = common_strategy_state,
         seeds = [
             VAULT_STRAT_ENTRY_SEED,
@@ -44,6 +46,7 @@ pub struct UpdateAttachedStratLstAmount<'info> {
 
     /// must be the one mentioned in vault_strategy_relation_entry
     /// CHECK: external acc manually deserialized
+    #[account(owner = vault_strategy_relation_entry.strategy_program_code)]
     pub common_strategy_state: UncheckedAccount<'info>,
 
     /// CHECK: PDA strat authority, used to compute ATA
